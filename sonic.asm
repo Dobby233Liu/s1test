@@ -1871,7 +1871,6 @@ Pal_Ending:	incbin	"palette\Ending.bin"
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-DelayProgram:
 WaitForVBla:
 		enable_ints
 
@@ -1917,12 +1916,9 @@ GM_Sega:
 		copyTilemap	$FF0000,$E510,$17,7
 		copyTilemap	$FF0180,$C000,$27,$1B
 
-		if Revision=0
-		else
-			tst.b   (v_megadrive).w	; is console Japanese?
-			bmi.s   @loadpal
-			copyTilemap	$FF0A40,$C53A,2,1 ; hide "TM" with a white rectangle
-		endc
+		tst.b   (v_megadrive).w	; is console Japanese?
+		bmi.s   @loadpal
+		copyTilemap	$FF0A40,$C53A,2,1 ; hide "TM" with a white rectangle
 
 	@loadpal:
 		moveq	#palid_SegaBG,d0
@@ -1941,20 +1937,25 @@ Sega_WaitPal:
 		bsr.w	PalCycle_Sega
 		bne.s	Sega_WaitPal
 
-		sfx	sfx_Sega,0,1,1	; play "SEGA" sound
+		sample	$88,0,1,1	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		move.w	#$1E,(v_demolength).w
+		move.w	#$4E+$1E,(v_demolength).w
 
 Sega_WaitEnd:
 		move.b	#2,(v_vbla_routine).w
 		bsr.w	WaitForVBla
+		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
+		bne.s	Sega_GotoTitle	; if yes, branch
 		tst.w	(v_demolength).w
 		bne.s	Sega_WaitEnd
 
 Sega_GotoTitle:
+		stopZ80
+		move.b	#$80,(z80_dac_sample).l ; stop DAC
+		startZ80
 		move.b	#id_Title,(v_gamemode).w ; go to title screen
-		rts	
+		rts
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -2108,13 +2109,12 @@ Tit_MainLoop:
 		addq.w	#2,d0
 		move.w	d0,(v_objspace+obX).w ; move Sonic to the right
 		cmpi.w	#$1C00,d0	; has Sonic object passed $1C00 on x-axis?
-		blo.s	Tit_ChkRegion	; if not, branch
+		blo.s	Tit_EnterCheat	; if not, branch
 
 		move.b	#id_Sega,(v_gamemode).w ; go to Sega screen
 		rts	
 ; ===========================================================================
 
-Tit_ChkRegion: ; unused
 Tit_EnterCheat:
 		lea	(LevSelCode_J).l,a0 ; load J code
 		move.w	(v_title_dcount).w,d0
@@ -2198,93 +2198,11 @@ Tit_ChkLevSel:
 ; Level	Select
 ; ---------------------------------------------------------------------------
 
-LevelSelect:
-		move.b	#2,(v_vbla_routine).w
-		bsr.w	WaitForVBla
-		bsr.w	LevSelControls
-		bsr.w	RunPLC
-		tst.l	(v_plc_buffer).w
-		bne.s	LevelSelect
-		andi.b	#btnABC+btnStart,(v_jpadpress1).w ; is A, B, C, or Start pressed?
-		beq.s	LevelSelect	; if not, branch
-		move.w	(v_levselitem).w,d0
-		cmpi.w	#$14,d0		; have you selected item $14 (sound test)?
-		bne.s	LevSel_Level_SS	; if not, go to	Level/SS subroutine
-		move.w	(v_levselsound).w,d0
-		;addi.w	#$80,d0
-		cmpi.w	#$9F+1,d0		; is sound $A0 being played?
-		beq.s	LevSel_Ending	; if yes, branch
-		cmpi.w	#$9E+3,d0		; is sound $A1 being played?
-		beq.s	LevSel_Credits	; if yes, branch
-
-LevSel_NoCheat:
-LevSel_PlaySnd:
-		bsr.w	PlaySound_Special
-		bra.s	LevelSelect
-; ===========================================================================
-
-LevSel_Ending:
-		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
-		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
-		rts	
-; ===========================================================================
-
-LevSel_Credits:
-		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
-		sfx	bgm_Credits,0,1,1 ; play credits music
-		move.w	#0,(v_creditsnum).w
-		rts	
-; ===========================================================================
-
-LevSel_Level_SS:
-		add.w	d0,d0
-		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
-		bmi.w	LevelSelect
-		cmpi.w	#id_SS*$100,d0	; check	if level is 0700 (Special Stage)
-		bne.s	LevSel_Level	; if not, branch
-		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
-		clr.w	(v_zone).w	; clear	level
-		move.b	#3,(v_lives).w	; set lives to 3
-		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
-		move.l	d0,(v_time).w	; clear time
-		move.l	d0,(v_score).w	; clear score
-		if Revision=0
-		else
-			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
-		endc
-		rts	
-; ===========================================================================
-
-LevSel_Level:
-		andi.w	#$3FFF,d0
-		move.w	d0,(v_zone).w	; set level number
-
-PlayLevel:
-		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
-		move.b	#3,(v_lives).w	; set lives to 3
-		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
-		move.l	d0,(v_time).w	; clear time
-		move.l	d0,(v_score).w	; clear score
-		move.b	d0,(v_lastspecial).w ; clear special stage number
-		move.b	d0,(v_emeralds).w ; clear emeralds
-		move.l	d0,(v_emldlist).w ; clear emeralds
-		move.l	d0,(v_emldlist+4).w ; clear emeralds
-		move.b	d0,(v_continues).w ; clear continues
-		if Revision=0
-		else
-			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
-		endc
-		sfx	bgm_Fade,0,1,1 ; fade out music
-		rts	
-; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Level	select - level pointers
+; Level pointers
 ; ---------------------------------------------------------------------------
-c_levsel_ending:	equ 0 ; replace ghz entry with ending
 LevSel_Ptrs:
-		if c_levsel_ending=1
+		if 0=1
 			dc.b id_Ending, 0
 			dc.b id_Ending, 1
 			dc.b id_Ending, 2
@@ -2312,8 +2230,76 @@ LevSel_Ptrs:
 		dc.b id_SS, 0		; Special Stage
 		dc.w $8000		; Sound Test
 		even
+
+LevelSelect:
+		move.b	#2,(v_vbla_routine).w
+		bsr.w	WaitForVBla
+		bsr.w	LevSelControls
+		bsr.w	RunPLC
+		tst.l	(v_plc_buffer).w
+		bne.s	LevelSelect
+		andi.b	#btnABC+btnStart,(v_jpadpress1).w ; is A, B, C, or Start pressed?
+		beq.s	LevelSelect	; if not, branch
+		move.w	(v_levselitem).w,d0
+		cmpi.w	#$14,d0		; have you selected item $14 (sound test)?
+		beq.s	@soundtest	; if yes, go to	sound test subroutine
+
+@level_ss:
+		add.w	d0,d0
+		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
+		bmi.w	LevelSelect
+		cmpi.b	#id_SS,d0	; check	if level is 0700 (Special Stage)
+		beq.s	@ss	; if yes, branch
+		andi.w	#$3FFF,d0
+		move.w	d0,(v_zone).w	; set level number
+		bra.w	PlayLevel
+@ss:
+		clr.w	(v_zone).w	; clear	level
+		move.b	#3,(v_lives).w	; set lives to 3
+		moveq	#0,d0
+		move.w	d0,(v_rings).w	; clear rings
+		move.l	d0,(v_time).w	; clear time
+		move.l	d0,(v_score).w	; clear score
+		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
+		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
+		rts
+
+@soundtest:
+		move.w	(v_levselsound).w,d0
+		cmpi.w	#sfx__Last+1,d0		; is sound $A0 being played?
+		beq.s	@ending	; if yes, branch
+		cmpi.w	#sfx__Last+2,d0		; is sound $A1 being played?
+		beq.s	@credits	; if yes, branch
+		bsr.w	PlaySound_Special
+		bra.w	LevelSelect
+@ending:
+		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
+		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
+		rts	
+@credits:
+		sfx	bgm_Credits,0,1,1 ; play credits music
+		move.w	#0,(v_creditsnum).w
+		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
+		rts
+
+PlayLevel:
+		move.b	#3,(v_lives).w	; set lives to 3
+		moveq	#0,d0
+		move.w	d0,(v_rings).w	; clear rings
+		move.l	d0,(v_time).w	; clear time
+		move.l	d0,(v_score).w	; clear score
+		move.b	d0,(v_lastspecial).w ; clear special stage number
+		move.b	d0,(v_emeralds).w ; clear emeralds
+		move.l	d0,(v_emldlist).w ; clear emeralds
+		move.l	d0,(v_emldlist+4).w ; clear emeralds
+		move.b	d0,(v_continues).w ; clear continues
+		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
+		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
+		sfx	bgm_Fade,0,1,1 ; fade out music
+		rts	
+; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Level	select codes
+; Level	select code
 ; ---------------------------------------------------------------------------
 LevSelCode_J:
 		dc.b btnUp,btnDn,btnL,btnR,0,$FF
@@ -2579,10 +2565,10 @@ MusicList:
 GM_Level:
 		bset	#7,(v_gamemode).w ; add $80 to screen mode (for pre level sequence)
 		tst.w	(f_demo).w
-		bmi.s	Level_NoMusicFade
+		bmi.s	@NoMusicFade
 		sfx	bgm_Fade,0,1,1 ; fade out music
 
-	Level_NoMusicFade:
+@NoMusicFade:
 		bsr.w	ClearPLC
 		bsr.w	PaletteFadeOut
 		tst.w	(f_demo).w	; is an ending sequence demo running?

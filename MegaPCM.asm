@@ -37,9 +37,9 @@ DAC_Entry macro Pitch,Offset,Flags
 IncludeDAC macro Name,Extension
 \Name:
 	if strcmp('\extension','wav')
-		incbin	'dac/\Name\.\Extension\',$3A
+		incbin	'sound/dac/\Name\.\Extension\',$3A
 	else
-		incbin	'dac/\Name\.\Extension\'
+		incbin	'sound/dac/\Name\.\Extension\'
 	endc
 \Name\_End:
 	endm
@@ -62,6 +62,7 @@ MegaPCM:
 	DAC_Entry	$15, Timpani, dpcm		; $85	- Mid-Timpani
 	DAC_Entry	$1B, Timpani, dpcm		; $86	- Mid-Low-Timpani
 	DAC_Entry	$1D, Timpani, dpcm		; $87	- Low-Timpani
+	DAC_Entry	$09, Sega, pcm			; $88	- "Sega" sound
 
 MegaPCM_End:
 
@@ -72,5 +73,6 @@ MegaPCM_End:
 	IncludeDAC	Kick, bin
 	IncludeDAC	Snare, bin
 	IncludeDAC	Timpani, bin
+	IncludeDAC	Sega, bin
 	even
 

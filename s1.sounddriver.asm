@@ -537,55 +537,21 @@ locret_PlaySoundID:
 
 Sound_ExIndex:
 ptr_flgE0:	bra.w	FadeOutMusic		; $E0
-ptr_flgE1:	bra.w	PlaySegaSound		; $E1
 ptr_flgE2:	bra.w	SpeedUpMusic		; $E2
 ptr_flgE3:	bra.w	SlowDownMusic		; $E3
 ptr_flgE4:	bra.w	StopAllSound		; $E4
 ptr_flgend
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Play "Sega" PCM sound
-; ---------------------------------------------------------------------------
-; Sound_E1: PlaySega:
-PlaySegaSound:
-        stopZ80
-        move.b	#$80,(z80_dac_sample).l ; stop DAC playback
-        move.b  #$B6,d0    			; Register: FM3/6 Panning
-        move.b  #$C0,d1    			; Value: Enable both channels
-        jsr WriteFMII(pc)   			; Write to YM2612 Port 1 (for FM6) [sub_72764]
-		lea	(SegaPCM).l,a2				; Load the SEGA PCM sample into a2. It's important that we use a2 since a0 and a1 are going to be used up ahead when reading the joypad ports 
-		move.l	#(SegaPCM_End-SegaPCM),d3; Load the size of the SEGA PCM sample into d3 
-		move.b	#$2A,(ym2612_a0).l		; $A04000 = $2A -> Write to DAC channel	  
-@loop:
-		move.b	(a2)+,(ym2612_d0).l	; Write the PCM data (contained in a2) to YM2612 register D0
-		move.w	#$14,d0				; Write the pitch ($14 in this case) to d0 
-		dbf	d0,*					; Decrement d0; jump to itself if not 0. (for pitch control, avoids playing the sample too fast)  
-		sub.l	#1,d3				; Subtract 1 from the PCM sample size 
-		beq.s	@skipset			; If d3 = 0, we finished playing the PCM sample, so stop playing, leave this loop, and unfreeze the 68K 
-		lea	(v_jpadhold1).w,a0		; address where JoyPad states are written 
-		lea	($A10003).l,a1			; address where JoyPad states are read from 
-		jsr	(Joypad_Read).w			; Read only the first joypad port. It's important that we do NOT do the two ports, we don't have the cycles for that 
-		btst	#bitStart,(v_jpadpress1).w	; Check for Start button 
-		beq.s	@loop	; If not pressed, continue playing PCM sample
-@setdemolen:
-		; If start is pressed, stop playing, leave this loop, and unfreeze the 68K 
-		cmpi.b	#id_Sega,(v_gamemode).w ; sega gm?
-		bne.s	@skipset ; skip set demolen
-		move.w	#0,(v_demolength).w ; set to 0
-@skipset:
-		startZ80
-		addq.w	#4,sp
-		rts
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Play music track $81-$9F
 ; ---------------------------------------------------------------------------
+; Sound_81to9F:
 Sound_PlayBGM:
 		cmpi.b	#bgm_ExtraLife,d7	; is the "extra life" music to be played?
 		bne.s	@bgmnot1up		; if not, branch
-		tst.b	f_1up_playing(a6)	; Is the 1-up music playing?
-		bne.w	@locdblret ; if yes, branch
+		tst.b	f_1up_playing(a6)	; Is a 1-up music playing?
+		bne.w	@locdblret		; if yes, branch
 		lea	v_music_track_ram(a6),a5
 		moveq	#((v_music_track_ram_end-v_music_track_ram)/TrackSz)-1,d0	; 1 DAC + 6 FM + 3 PSG tracks
 ; loc_71FE6:
@@ -643,14 +609,14 @@ Sound_PlayBGM:
 		moveq	#0,d1
 		movea.l	a4,a3
 		addq.w	#6,a4			; Point past header
-		move.b	4(a3),d4		; load tempo dividing timing
-		moveq	#TrackSz,d6
-		move.b	#1,d5			; Note duration for first "note"
 		moveq	#0,d7
 		move.b	2(a3),d7		; load number of FM+DAC tracks
 		beq.w	@bgm_fmdone		; branch if zero
 		subq.b	#1,d7
 		move.b	#$C0,d1			; Default AMS+FMS+Panning
+		move.b	4(a3),d4		; load tempo dividing timing
+		moveq	#TrackSz,d6
+		move.b	#1,d5			; Note duration for first "note"
 		lea	v_music_fmdac_tracks(a6),a1
 		lea	FMDACInitBytes(pc),a2
 ; loc_72098:
@@ -770,6 +736,7 @@ Sound_PlayBGM:
 		jsr	PSGNoteOff(pc)
 		adda.w	d6,a5
 		dbf	d4,@psgnoteoffloop		; run all PSG tracks
+; loc_721B6:
 @locdblret:
 		addq.w	#4,sp	; Tamper with return value to not return to caller
 		rts	
@@ -1000,7 +967,6 @@ Sound_PlaySpecial:
 		rts	
 ; End of function PlaySoundID
 
-; ===========================================================================
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 ; Snd_FadeOut1: Snd_FadeOutSFX: FadeOutSFX:
@@ -1479,7 +1445,6 @@ WriteFMII:                ; XREF: loc_71E6A Sound_ChkValue sub_72764 sub_7256A W
         rts
 ; End of function WriteFMII
 
-; ===========================================================================
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 ; sub_72850:
@@ -1567,6 +1532,7 @@ PSGDoNoteOn:
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
+; sub_728E2:
 PSGUpdateFreq:
 		move.b	TrackDetune(a5),d0	; Get detune value
 		ext.w	d0
@@ -1605,7 +1571,8 @@ PSGSetRest:
 PSGUpdateVolFX:
 		tst.b	TrackVoiceIndex(a5)	; Test PSG tone
 		beq.w	locret_7298A		; Return if it is zero
-PSGDoVolFX:	; This can actually be made a bit more efficient, see the comments for more
+; loc_7292E:
+PSGDoVolFX:
 		move.b	TrackVolume(a5),d6	; Get volume
 		moveq	#0,d0
 		move.b	TrackVoiceIndex(a5),d0	; Get PSG tone
@@ -1621,7 +1588,7 @@ PSGDoVolFX:	; This can actually be made a bit more efficient, see the comments f
 ; loc_72960:
 @gotflutter:
 		add.w	d0,d6		; Add volume envelope value to volume
-; End of function PSGUpdateVolFX, runs SetPSGVolume below
+; Fall-through
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -1846,7 +1813,7 @@ cfFadeInToPrevious:
 		add.b	d6,TrackVolume(a5)	; Apply current volume fade-in
         cmpi.b  #$E0,1(a5)	; is this the noise channel?
         bne.s   @nextpsg	; no - skip
-        move.b  $1F(a5),(psg_input)	; restore noise settings
+        move.b  $1F(a5),(psg_input).l	; restore noise settings
 ; loc_72B78:
 @nextpsg:
 		adda.w	#TrackSz,a5

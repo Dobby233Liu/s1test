@@ -324,6 +324,3 @@ SoundCF:	incbin	"sound/sfx/SndCF - Signpost.bin"
 		even
 SoundD0:	incbin	"sound/sfx/SndD0 - Waterfall.bin"
 		even
-
-SegaPCM:	incbin	"sound/dac/sega.pcm"
-SegaPCM_End

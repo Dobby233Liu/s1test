@@ -25,11 +25,12 @@ PlaySound_Special:
 		rts	
 ; End of function PlaySound_Special
 
-; ===========================================================================
 ; ---------------------------------------------------------------------------
-; Unused sound/music subroutine
+; Subroutine to play a DAC sample
 ; ---------------------------------------------------------------------------
-
-; PlaySound_SpecialSFX:
-		; move.b	d0,(v_snddriver_ram+v_soundqueue2).w
-		; rts
+ 
+PlaySample:
+		stopZ80
+		move.b	d0,(z80_dac_sample).l
+		startZ80
+		rts

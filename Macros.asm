@@ -253,59 +253,26 @@ out_of_range:	macro exit,pos
 ; ---------------------------------------------------------------------------
 
 music:		macro track,terminate,branch,byte
-		  if OptimiseSound=1
-			move.b	#track,(v_snddriver_ram+v_soundqueue0).l
-		    if terminate=1
-			rts
-		    endc
-		  else
-	 	    if byte=1
-			move.b	#track,d0
-		    else
-			move.w	#track,d0
-		    endc
-		    if branch=1
-		      if terminate=0
-			bsr.w	PlaySound
-		      else
-			bra.w	PlaySound
-		      endc
-		    else
-		      if terminate=0
-			jsr	(PlaySound).l
-		      else
-			jmp	(PlaySound).l
-		      endc
-		    endc
-		  endc
+		move.b	#track,(v_snddriver_ram+v_soundqueue0).l
+		if terminate=1
+		rts
+		endc
 		endm
 
 sfx:		macro track,terminate,branch,byte
-		  if OptimiseSound=1
-			move.b	#track,(v_snddriver_ram+v_soundqueue1).l
-		    if terminate=1
-			rts
-		    endc
-		  else
-	 	    if byte=1
-			move.b	#track,d0
-		    else
-			move.w	#track,d0
-		    endc
-		    if branch=1
-		      if terminate=0
-			bsr.w	PlaySound_Special
-		      else
-			bra.w	PlaySound_Special
-		      endc
-		    else
-		      if terminate=0
-			jsr	(PlaySound_Special).l
-		      else
-			jmp	(PlaySound_Special).l
-		      endc
-		    endc
-		  endc
+		move.b	#track,(v_snddriver_ram+v_soundqueue1).l
+		if terminate=1
+		rts
+		endc
+		endm
+
+sample:		macro track,terminate
+		stopZ80
+		move.b	#track,(z80_dac_sample).l
+		startZ80
+		if terminate=1
+		rts
+		endc
 		endm
 
 ; ---------------------------------------------------------------------------
