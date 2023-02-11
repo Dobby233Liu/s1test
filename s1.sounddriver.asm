@@ -717,7 +717,6 @@ Sound_PlayBGM:
 		add.l	a3,d0				; Relative pointer
 		move.l	d0,TrackDataPointer(a1)	; Store track pointer
 		move.w	(a4)+,TrackTranspose(a1)	; load PSG modifier
-		move.b	(a4)+,d0			; load redundant byte
 		move.b	(a4)+,TrackVoiceIndex(a1)	; Initial PSG tone
 		adda.w	d6,a1
 		dbf	d7,@bgm_psgloadloop
