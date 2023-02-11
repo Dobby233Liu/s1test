@@ -1933,7 +1933,7 @@ Sega_WaitPal:
 		sample	dSega	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		move.w	#$50+$20,(v_demolength).w
+		move.w	#$50+$30,(v_demolength).w
 
 Sega_WaitEnd:
 		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
