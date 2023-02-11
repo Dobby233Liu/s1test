@@ -126,7 +126,8 @@ startZ80:	macro
 ; wait for ym2612
 ; ---------------------------------------------------------------------------
 waitYM macro
-	@wait\@:	lea	(ym2612_a0).l,a0
+		lea	(ym2612_a0).l,a0
+	@wait\@:
 		btst    #7,(a0)
 		bne.s    @wait\@
     	endm
