@@ -62,9 +62,9 @@ TrackGoSubStack:	equ TrackSz	; All tracks (multiple bytes. This constant won't g
 TrackSz:	equ $30
 
 ; DAC sample ids
-dUnpause        equ $0
+dUnpause        equ 0
 dPause          equ $7F
-dStop           equ 0
+dStop           equ $80
 dKick           equ $81
 dSnare          equ $82
 dTimpani        equ $83
