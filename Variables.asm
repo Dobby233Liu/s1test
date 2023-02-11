@@ -37,6 +37,7 @@ v_sound_id:		equ $009	; sound or music copied from below
 v_soundqueue0:		equ $00A	; sound or music to play
 v_soundqueue1:		equ $00B	; special sound to play
 v_soundqueue2:		equ $00C	; unused sound to play
+v_soundqueuefree:	equ $00D	; unused slot, do not touch
 
 f_voice_selector:	equ $00E	; $00 = use music voice pointer; $40 = use special voice pointer; $80 = use track voice pointer
 

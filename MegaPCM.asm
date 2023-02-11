@@ -62,7 +62,7 @@ MegaPCM:
 	DAC_Entry	$15, Timpani, dpcm		; $85	- Mid-Timpani
 	DAC_Entry	$1B, Timpani, dpcm		; $86	- Mid-Low-Timpani
 	DAC_Entry	$1D, Timpani, dpcm		; $87	- Low-Timpani
-	DAC_Entry	$09, Sega, pcm			; $88	- "Sega" sound
+	DAC_Entry	$09, Sega, pcm+pri		; $88	- "Sega" sound
 
 MegaPCM_End:
 

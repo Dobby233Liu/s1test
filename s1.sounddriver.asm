@@ -488,6 +488,8 @@ CycleSoundQueue:
 		move.b	d0,d1
 		clr.b	(a1)+			; Clear entry
 		subi.b	#bgm__First,d0		; Make it into 0-based index
+		cmpi.b	#0,d1
+		beq.s	@nextinput		; If negative (i.e., it was $80 or lower), branch
 		cmpi.b	#bgm_None,v_sound_id(a6)	; Is v_sound_id a $80 (silence/empty)?
 		beq.s	@havesound		; If yes, branch
 		move.b	d1,v_soundqueue0(a6)	; Put sound into v_soundqueue0
