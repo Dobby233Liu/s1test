@@ -87,6 +87,9 @@ copyTilemap:	macro source,loc,width,height
 
 stopZ80:	macro
 		move.w	#$100,(z80_bus_request).l
+		nop
+		nop
+		nop
 		waitZ80
 		endm
 
@@ -95,9 +98,6 @@ stopZ80:	macro
 ; ---------------------------------------------------------------------------
 
 waitZ80:	macro
-		nop
-		nop
-		nop
 	@wait\@:	btst	#0,(z80_bus_request).l
 		bne.s	@wait\@
 		endm
