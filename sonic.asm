@@ -949,7 +949,6 @@ ClearScreen:
 
 
 SoundDriverLoad:
-		nop	
 		stopZ80
 		resetZ80
 
@@ -961,10 +960,6 @@ SoundDriverLoad:
         dbf	d1,@load
 
 		resetZ80a
-		nop	
-		nop	
-		nop	
-		nop
 		resetZ80
 		startZ80
 		rts	
