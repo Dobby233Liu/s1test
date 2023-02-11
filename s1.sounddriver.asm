@@ -106,9 +106,6 @@ UpdateMusic:
 		jsr	PSGUpdateTrack(pc)
 ; loc_71C44: DoStartZ80
 @skiplastupdate:
-		waitYM
-		move.b    #$2A,(ym2612_a0).l
-		startZ80
 		rts	
 ; End of function UpdateMusic
 
@@ -1428,10 +1425,14 @@ WriteFMIorII:
 
 ; XREF: loc_71E6A sub_7272E
 WriteFMI:
+		stopZ80
 		waitYM
 		move.b	d0,(ym2612_a0).l
 		waitYM
 		move.b	d1,(ym2612_d0).l
+		waitYM
+		move.b	#$2A,(ym2612_d0).l
+		startZ80
 		rts 
 ; End of function WriteFMI
 
@@ -1446,10 +1447,14 @@ WriteFMIIPart:
 
 ; XREF: loc_71E6A Sound_ChkValue sub_72764 sub_7256A WriteFMII
 WriteFMII:
+		stopZ80
 		waitYM
 		move.b	d0,(ym2612_a1).l
 		waitYM
 		move.b	d1,(ym2612_d1).l
+		waitYM
+		move.b	#$2A,(ym2612_d0).l
+		startZ80
 		rts 
 ; End of function WriteFMII
 
@@ -1831,7 +1836,6 @@ cfFadeInToPrevious:
 		move.b	#$80,f_fadein_flag(a6)		; Trigger fade-in
 		move.b	#$28,v_fadein_counter(a6)	; Fade-in delay
 		clr.b	f_1up_playing(a6)
-		startZ80
 		addq.w	#8,sp		; Tamper return value so we don't return to caller
 		rts	
 ; ===========================================================================

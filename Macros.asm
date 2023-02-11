@@ -87,6 +87,7 @@ copyTilemap:	macro source,loc,width,height
 
 stopZ80:	macro
 		move.w	#$100,(z80_bus_request).l
+		waitZ80
 		endm
 
 ; ---------------------------------------------------------------------------
@@ -94,8 +95,11 @@ stopZ80:	macro
 ; ---------------------------------------------------------------------------
 
 waitZ80:	macro
-	@wait:	btst	#0,(z80_bus_request).l
-		bne.s	@wait
+		nop
+		nop
+		nop
+	@wait\@:	btst	#0,(z80_bus_request).l
+		bne.s	@wait\@
 		endm
 
 ; ---------------------------------------------------------------------------
@@ -122,10 +126,10 @@ startZ80:	macro
 ; wait for ym2612
 ; ---------------------------------------------------------------------------
 waitYM macro
-@wait\@:	lea	($A04000).l,a0
-    btst    #7,(a0)
-    bne.s    @wait\@
-    endm
+	@wait\@:	lea	(ym2612_a0).l,a0
+		btst    #7,(a0)
+		bne.s    @wait\@
+    	endm
 
 ; ---------------------------------------------------------------------------
 ; disable interrupts
