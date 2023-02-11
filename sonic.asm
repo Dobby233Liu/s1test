@@ -2029,9 +2029,7 @@ Sega_WaitEnd:
 		move.b	#2,(v_vbla_routine).w
 		bsr.w	WaitForVBla
 		tst.w	(v_demolength).w
-		beq.s	Sega_GotoTitle
-		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
-		beq.s	Sega_WaitEnd	; if not, branch
+		bne.s	Sega_WaitEnd
 
 Sega_GotoTitle:
 		move.b	#id_Title,(v_gamemode).w ; go to title screen
