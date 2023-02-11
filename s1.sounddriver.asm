@@ -1652,9 +1652,9 @@ SendPSGNoteOff:
 		; risk of music accidentally playing noise because it can't detect if
 		; the PSG4/noise channel needs muting on track initialisation.
 		; S&K's driver fixes it by doing this:
-		cmpi.b	#$DF,d0				; Are stopping PSG3?
-		bne.s	locret_729B4
-		move.b	#$FF,(psg_input).l		; If so, stop noise channel while we're at it
+		;cmpi.b	#$DF,d0				; Are stopping PSG3?
+		;bne.s	locret_729B4
+		;move.b	#$FF,(psg_input).l		; If so, stop noise channel while we're at it
 
 locret_729B4:
 		rts	
