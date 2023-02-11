@@ -1,4 +1,4 @@
-# The Garbage Sonic 1 Fix Mod That Not Even Your Mom Regonvice
+# Trash Sonic 1 Hack That Nobody Asked For
 
 DISCLAIMER:
 Any and all content presented in this repository is presented for informational and educational purposes only.
