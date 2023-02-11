@@ -1357,7 +1357,7 @@ DoFadeIn:
 		clr.b	f_fadein_flag(a6)				; Stop fadein
 		tst.b   v_music_track_ram(a6)	; is the DAC channel running?
 		bpl.s   @fadedonenodac			; if not, branch
-		move.b   v_music_fm6_track+TrackAMSFMSPan(a6),d0			; prepare FM channel 3/6 L/R/AMS/FMS address
+		move.b	$B6,d0					; FM channel 6 L/R/AMS/FMS address
 		move.b  $4A(a6),d1				; load DAC channel's L/R/AMS/FMS value
 		jsr WriteFMII(pc)				; write to FM 6
 
