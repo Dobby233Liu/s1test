@@ -1431,7 +1431,7 @@ WriteFMI:
 		waitYM
 		move.b	d1,(ym2612_d0).l
 		waitYM
-		move.b	#$2A,(ym2612_d0).l
+		move.b	#$2A,(ym2612_a0).l
 		startZ80
 		rts 
 ; End of function WriteFMI
@@ -1453,7 +1453,7 @@ WriteFMII:
 		waitYM
 		move.b	d1,(ym2612_d1).l
 		waitYM
-		move.b	#$2A,(ym2612_d0).l
+		move.b	#$2A,(ym2612_a0).l
 		startZ80
 		rts 
 ; End of function WriteFMII
