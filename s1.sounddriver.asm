@@ -566,7 +566,7 @@ PlaySegaSound:
 		lea	($A10003).l,a1			; address where JoyPad states are read from 
 		jsr	(Joypad_Read).w			; Read only the first joypad port. It's important that we do NOT do the two ports, we don't have the cycles for that 
 		btst	#bitStart,(v_jpadpress1).w	; Check for Start button 
-		beq.s	@setdemolen	; If not pressed, continue playing PCM sample
+		beq.s	@loop	; If not pressed, continue playing PCM sample
 @setdemolen:
 		; If start is pressed, stop playing, leave this loop, and unfreeze the 68K 
 		cmpi.b	#id_Sega,(v_gamemode).w ; sega gm?
