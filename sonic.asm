@@ -859,36 +859,18 @@ HBlank:
 ; End of function HBlank
 
 ; ---------------------------------------------------------------------------
-; Subroutine to	initialise joypads
-; ---------------------------------------------------------------------------
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-JoypadInit:
-                                stopZ80
-		moveq	#$40,d0
-		move.b	d0,($A10009).l	; init port 1 (joypad 1)
-		move.b	d0,($A1000B).l	; init port 2 (joypad 2)
-		move.b	d0,($A1000D).l	; init port 3 (expansion/extra)
-                                startZ80
-		rts	
-; End of function JoypadInit
-
-; ---------------------------------------------------------------------------
 ; Subroutine to	read joypad input, and send it to the RAM
 ; ---------------------------------------------------------------------------
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
 ReadJoypads:
-        stopZ80 ; do not remove!
+        stopZ80	; do not remove!
 		lea	(v_jpadhold1).w,a0 ; address where joypad states are written
 		lea	($A10003).l,a1	; first	joypad port
 		bsr.s	Joypad_Read		; do the first joypad
 		addq.w	#2,a1		; do the second	joypad
-
-	Joypad_Read:
+Joypad_Read:
 		move.b	#0,(a1)
 		nop	
 		nop	
@@ -907,70 +889,9 @@ ReadJoypads:
 		move.b	d0,(a0)+
 		and.b	d0,d1
 		move.b	d1,(a0)+
-                                startZ80
+        startZ80
 		rts	
 ; End of function ReadJoypads
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
-
-VDPSetupGame:
-		lea	(vdp_control_port).l,a0
-		lea	(vdp_data_port).l,a1
-		lea	(VDPSetupArray).l,a2
-		moveq	#$12,d7
-
-	@setreg:
-		move.w	(a2)+,(a0)
-		dbf	d7,@setreg	; set the VDP registers
-
-		move.w	(VDPSetupArray+2).l,d0
-		move.w	d0,(v_vdp_buffer1).w
-		move.w	#$8A00+223,(v_hbla_hreg).w	; H-INT every 224th scanline
-		moveq	#0,d0
-		move.l	#$C0000000,(vdp_control_port).l ; set VDP to CRAM write
-		move.w	#$3F,d7
-
-	@clrCRAM:
-		move.w	d0,(a1)
-		dbf	d7,@clrCRAM	; clear	the CRAM
-
-		clr.l	(v_scrposy_dup).w
-		clr.l	(v_scrposx_dup).w
-		move.l	d1,-(sp)
-		fillVRAM	0,$FFFF,0
-
-	@waitforDMA:
-		move.w	(a5),d1
-		btst	#1,d1		; is DMA (fillVRAM) still running?
-		bne.s	@waitforDMA	; if yes, branch
-
-		move.w	#$8F02,(a5)	; set VDP increment size
-		move.l	(sp)+,d1
-		rts	
-; End of function VDPSetupGame
-
-; ===========================================================================
-VDPSetupArray:	dc.w $8004		; 8-colour mode
-		dc.w $8134		; enable V.interrupts, enable DMA
-		dc.w $8200+(vram_fg>>10) ; set foreground nametable address
-		dc.w $8300+($A000>>10)	; set window nametable address
-		dc.w $8400+(vram_bg>>13) ; set background nametable address
-		dc.w $8500+(vram_sprites>>9) ; set sprite table address
-		dc.w $8600		; unused
-		dc.w $8700		; set background colour (palette entry 0)
-		dc.w $8800		; unused
-		dc.w $8900		; unused
-		dc.w $8A00		; default H.interrupt register
-		dc.w $8B00		; full-screen vertical scrolling
-		dc.w $8C81		; 40-cell display mode
-		dc.w $8D00+(vram_hscroll>>10) ; set background hscroll address
-		dc.w $8E00		; unused
-		dc.w $8F02		; set VDP increment size
-		dc.w $9001		; 64-cell hscroll size
-		dc.w $9100		; window horizontal position
-		dc.w $9200		; window vertical position
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	clear the screen
@@ -2154,19 +2075,15 @@ GM_Title:
 		dbf	d1,Tit_ClrObj2
 
 		move.b	#id_TitleSonic,(v_objspace+$40).w ; load big Sonic object
-		move.b	#id_PSBTM,(v_objspace+$80).w ; load "PRESS START BUTTON" object
+		move.b	#id_PSBTM,(v_objspace+$80).w ; load object which hides part of Sonic
+		move.b	#2,(v_objspace+$80+obFrame).w
+		move.b	#id_PSBTM,(v_objspace+$C0).w ; load "PRESS START BUTTON" object
 
-		if Revision=0
-		else
-			tst.b   (v_megadrive).w	; is console Japanese?
-			bpl.s   @isjap		; if yes, branch
-		endc
-
-		move.b	#id_PSBTM,(v_objspace+$C0).w ; load "TM" object
-		move.b	#3,(v_objspace+$C0+obFrame).w
+		tst.b   (v_megadrive).w	; is console Japanese?
+		bpl.s   @isjap		; if yes, branch
+		move.b	#id_PSBTM,(v_objspace+$100).w ; load "TM" object
+		move.b	#3,(v_objspace+$100+obFrame).w
 	@isjap:
-		move.b	#id_PSBTM,(v_objspace+$100).w ; load object which hides part of Sonic
-		move.b	#2,(v_objspace+$100+obFrame).w
 		jsr	(ExecuteObjects).l
 		bsr.w	DeformLayers
 		jsr	(BuildSprites).l

@@ -6,8 +6,7 @@ PSBTM:
 		moveq	#0,d0
 		move.b	obRoutine(a0),d0
 		move.w	PSB_Index(pc,d0.w),d1
-		jsr	PSB_Index(pc,d1.w)
-		bra.w	DisplaySprite
+		jmp	PSB_Index(pc,d1.w)
 ; ===========================================================================
 PSB_Index:	dc.w PSB_Main-PSB_Index
 		dc.w PSB_PrsStart-PSB_Index
@@ -30,9 +29,10 @@ PSB_Main:	; Routine 0
 		move.w	#$2510,obGfx(a0) ; "TM" specific code
 		move.w	#$170,obX(a0)
 		move.w	#$F8,obScreenY(a0)
+		bra.w	DisplaySprite
 
 PSB_Exit:	; Routine 4
-		rts	
+		bra.w	DisplaySprite
 ; ===========================================================================
 
 PSB_PrsStart:	; Routine 2
