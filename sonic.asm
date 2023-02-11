@@ -2266,9 +2266,9 @@ LevelSelect:
 
 @soundtest:
 		move.w	(v_levselsound).w,d0
-		cmpi.w	#sfx__Last+1,d0		; is sound $A0 being played?
+		cmpi.w	#flg__Last+1,d0		; is sound $A0 being played?
 		beq.s	@ending	; if yes, branch
-		cmpi.w	#sfx__Last+2,d0		; is sound $A1 being played?
+		cmpi.w	#flg__Last+2,d0		; is sound $A1 being played?
 		beq.s	@credits	; if yes, branch
 		bsr.w	PlaySound_Special
 		bra.w	LevelSelect
