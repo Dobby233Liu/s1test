@@ -106,6 +106,8 @@ UpdateMusic:
 		jsr	PSGUpdateTrack(pc)
 ; loc_71C44: DoStartZ80
 @skiplastupdate:
+		waitYM
+		move.b    #$2A,(ym2612_a0).l
 		startZ80
 		rts	
 ; End of function UpdateMusic
@@ -392,6 +394,7 @@ PauseMusic:
 		cmpi.b	#2,f_pausemusic(a6)
 		beq.w	@haspaused
 		move.b	#2,f_pausemusic(a6)
+
 		moveq	#2,d3
 		move.b	#$B4,d0		; Command to set AMS/FMS/panning
 		moveq	#0,d1		; No panning, AMS or FMS
@@ -413,6 +416,7 @@ PauseMusic:
 		dbf	d3,@noteoffloop
 
 		jsr	PSGSilenceAll(pc)
+
 		stopZ80
 		move.b	#$7F,(z80_dac_sample).l ; pause DAC
 		startZ80

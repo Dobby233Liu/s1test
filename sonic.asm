@@ -960,7 +960,6 @@ SoundDriverLoad:
 	@load:
 		move.b	(a0)+,(a1)+
         dbf	d1,@load
-        moveq	#0,d1
 	@normal:
 		resetZ80a
 		nop	
