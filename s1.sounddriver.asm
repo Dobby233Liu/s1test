@@ -390,7 +390,7 @@ FMSetRest:
 PauseMusic:
 		bmi.s	@unpausemusic		; Branch if music is being unpaused
 		cmpi.b	#2,f_pausemusic(a6)
-		beq.w	@unpausedallfm
+		beq.w	@haspaused
 		move.b	#2,f_pausemusic(a6)
 		moveq	#2,d3
 		move.b	#$B4,d0		; Command to set AMS/FMS/panning
@@ -465,9 +465,9 @@ PauseMusic:
 @unpausedac:
 		stopZ80
 		move.b	#0,(z80_dac_sample).l
-; loc_71EFE:
-@unpausedallfm:
 		startZ80
+; loc_71EFE:
+@haspaused:
 		rts
 
 ; ---------------------------------------------------------------------------
