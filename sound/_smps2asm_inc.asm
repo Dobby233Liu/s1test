@@ -174,15 +174,6 @@ cFM4				EQU $04
 cFM5				EQU $05
 cFM6				EQU $06	; Only in S3/S&K/S3D, overrides DAC
 ; ---------------------------------------------------------------------------------------------
-; DAC sample ids
-dKick	equ $81
-dSnare	equ $82
-dTimpani    equ $83
-dHiTimpani    equ $84
-dMidTimpani    equ $85
-dVLowTimpani    equ $86
-dLowTimpani    equ $87
-; ---------------------------------------------------------------------------------------------
 ; Header Macros
 smpsHeaderStartSong macro ver
 SourceDriver set ver

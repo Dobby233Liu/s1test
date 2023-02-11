@@ -61,6 +61,19 @@ TrackGoSubStack:	equ TrackSz	; All tracks (multiple bytes. This constant won't g
 
 TrackSz:	equ $30
 
+; DAC sample ids
+dUnpause        equ $0
+dPause          equ $7F
+dStop           equ 0
+dKick           equ $81
+dSnare          equ $82
+dTimpani        equ $83
+dHiTimpani      equ $84
+dMidTimpani     equ $85
+dVLowTimpani    equ $86
+dLowTimpani     equ $87
+dSega           equ $88
+
 ; VRAM data
 vram_fg:	equ $C000	; foreground namespace
 vram_bg:	equ $E000	; background namespace

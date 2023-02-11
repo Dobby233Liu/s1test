@@ -417,9 +417,7 @@ PauseMusic:
 
 		jsr	PSGSilenceAll(pc)
 
-		stopZ80
-		move.b	#$7F,(z80_dac_sample).l ; pause DAC
-		startZ80
+		sample	dPause	; pause DAC
 		rts	
 ; ===========================================================================
 ; loc_71E94:
@@ -467,9 +465,7 @@ PauseMusic:
 		move.b	TrackAMSFMSPan(a5),d1	; Get value from track RAM
 		jsr	WriteFMIorII(pc)
 @unpausedac:
-		stopZ80
-		move.b	#0,(z80_dac_sample).l
-		startZ80
+		sample	dUnpause
 ; loc_71EFE:
 @haspaused:
 		rts
@@ -1216,9 +1212,7 @@ StopAllSound:
 
 		move.b	#bgm_None,v_sound_id(a6)	; set music to $80 (silence)
 		jsr	FMSilenceAll(pc)
-		stopZ80
-        move.b	#$80,(z80_dac_sample).l ; stop DAC playback
-		startZ80
+		sample	dStop ; stop DAC playback
 		bra.w	PSGSilenceAll
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||

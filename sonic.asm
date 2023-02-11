@@ -865,7 +865,6 @@ HBlank:
 
 
 ReadJoypads:
-        stopZ80	; do not remove!
 		lea	(v_jpadhold1).w,a0 ; address where joypad states are written
 		lea	($A10003).l,a1	; first	joypad port
 		bsr.s	Joypad_Read		; do the first joypad
@@ -889,7 +888,6 @@ Joypad_Read:
 		move.b	d0,(a0)+
 		and.b	d0,d1
 		move.b	d1,(a0)+
-        startZ80
 		rts	
 ; End of function ReadJoypads
 
@@ -954,13 +952,14 @@ SoundDriverLoad:
 		nop	
 		stopZ80
 		resetZ80
+
 		lea	(MegaPCM).l,a0	; load sound driver
 		lea	(z80_ram).l,a1	; target Z80 RAM
         move.w	#(MegaPCM_End-MegaPCM)-1,d1
 	@load:
 		move.b	(a0)+,(a1)+
         dbf	d1,@load
-	@normal:
+
 		resetZ80a
 		nop	
 		nop	
@@ -1936,7 +1935,7 @@ Sega_WaitPal:
 		bsr.w	PalCycle_Sega
 		bne.s	Sega_WaitPal
 
-		sample	$88	; play "SEGA" sound
+		sample	dSega	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
 		move.w	#$4E+$1E,(v_demolength).w
@@ -1950,9 +1949,7 @@ Sega_WaitEnd:
 		bne.s	Sega_WaitEnd
 
 Sega_GotoTitle:
-		stopZ80
-		move.b	#$80,(z80_dac_sample).l ; stop DAC
-		startZ80
+		sample	dStop
 		move.b	#id_Title,(v_gamemode).w ; go to title screen
 		rts
 ; ===========================================================================
