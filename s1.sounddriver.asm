@@ -1789,8 +1789,8 @@ cfFadeInToPrevious:
 		move.l	(a1)+,(a0)+
 		dbf	d0,@restoreramloop
 
-        move.b  #$2B, d0    ; Register: DAC mode (bit 7 = enable)
-        moveq   #$00, d1    ; Value: DAC mode disable
+        move.b  #$2B,d0    ; Register: DAC mode (bit 7 = enable)
+        moveq   #$00,d1    ; Value: DAC mode disable
         jsr WriteFMI(pc)    ; Write to YM2612 Port 0 [sub_7272E]
 
 		bset	#2,v_music_dac_track+TrackPlaybackControl(a6)	; Set 'SFX overriding' bit
