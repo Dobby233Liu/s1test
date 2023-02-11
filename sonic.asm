@@ -949,9 +949,8 @@ ClearScreen:
 
 
 SoundDriverLoad:
-		nop	
 		stopZ80
-		resetZ80
+		resetZ80a
 
 		lea	(MegaPCM).l,a0	; load sound driver
 		lea	(z80_ram).l,a1	; target Z80 RAM
@@ -960,11 +959,6 @@ SoundDriverLoad:
 		move.b	(a0)+,(a1)+
         dbf	d1,@load
 
-		resetZ80a
-		nop	
-		nop	
-		nop	
-		nop
 		resetZ80
 		startZ80
 		rts	
