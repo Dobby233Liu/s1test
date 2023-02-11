@@ -136,7 +136,7 @@ GotThroughAct:
 		move.w	(v_rings).w,d0	; load number of rings
 		mulu.w	#10,d0		; multiply by 10
 		move.w	d0,(v_ringbonus).w ; set ring bonus
-		sfx	bgm_GotThrough,0,0,0	; play "Sonic got through" music
+		sfx	bgm_GotThrough	; play "Sonic got through" music
 
 locret_ECEE:
 		rts	

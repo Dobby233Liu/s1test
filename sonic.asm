@@ -1887,7 +1887,7 @@ WaitForVBla:
 ; ---------------------------------------------------------------------------
 
 GM_Sega:
-		sfx	bgm_Fade,0,1,1 ; stop music
+		sfx	bgm_Fade	; stop music
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
 		bsr.w	PaletteFadeOut
@@ -1938,7 +1938,7 @@ Sega_WaitPal:
 		sample	dSega	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		move.w	#$4E+$1E,(v_demolength).w
+		move.w	#$50+$20,(v_demolength).w
 
 Sega_WaitEnd:
 		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
@@ -1959,7 +1959,7 @@ Sega_GotoTitle:
 ; ---------------------------------------------------------------------------
 
 GM_Title:
-		sfx	bgm_Stop,0,1,1 ; stop music
+		sfx	bgm_Stop	; stop music
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
 		bsr.w	PaletteFadeOut
@@ -2060,7 +2060,7 @@ GM_Title:
 		bsr.w	NemDec
 		moveq	#palid_Title,d0	; load title screen palette
 		bsr.w	PalLoad1
-		sfx	bgm_Title,0,1,1	; play title screen music
+		sfx	bgm_Title	; play title screen music
 		move.b	#0,(f_debugmode).w ; disable debug mode
 		move.w	#$200,(v_demolength).w ; run title screen for $200 frames
 		lea	(v_objspace+$80).w,a1
@@ -2273,7 +2273,7 @@ LevelSelect:
 		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
 		rts	
 @credits:
-		sfx	bgm_Credits,0,1,1 ; play credits music
+		sfx	bgm_Credits ; play credits music
 		move.w	#0,(v_creditsnum).w
 		move.b	#id_Credits,(v_gamemode).w ; set screen mode to $1C (Credits)
 		rts
@@ -2291,7 +2291,7 @@ PlayLevel:
 		move.b	d0,(v_continues).w ; clear continues
 		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
-		sfx	bgm_Fade,0,1,1 ; fade out music
+		sfx	bgm_Fade ; fade out music
 		rts	
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
@@ -2329,7 +2329,7 @@ loc_33E4:
 		bne.w	Tit_ChkLevSel	; if yes, branch
 		tst.w	(v_demolength).w
 		bne.w	loc_33B6
-		sfx	bgm_Fade,0,1,1 ; fade out music
+		sfx	bgm_Fade ; fade out music
 		move.w	(v_demonum).w,d0 ; load	demo number
 		andi.w	#7,d0
 		add.w	d0,d0
@@ -2562,7 +2562,7 @@ GM_Level:
 		bset	#7,(v_gamemode).w ; add $80 to screen mode (for pre level sequence)
 		tst.w	(f_demo).w
 		bmi.s	@NoMusicFade
-		sfx	bgm_Fade,0,1,1 ; fade out music
+		sfx	bgm_Fade ; fade out music
 
 @NoMusicFade:
 		bsr.w	ClearPLC
@@ -3208,7 +3208,7 @@ loc_47D4:
 		move.w	(v_rings).w,d0
 		mulu.w	#10,d0		; multiply rings by 10
 		move.w	d0,(v_ringbonus).w ; set rings bonus
-		sfx	bgm_GotThrough,0,0,0	 ; play end-of-level music
+		sfx	bgm_GotThrough	 ; play end-of-level music
 
 		lea	(v_objspace).w,a1
 		moveq	#0,d0
@@ -3639,7 +3639,7 @@ Map_ContScr:	include	"_maps\Continue Screen.asm"
 ; ---------------------------------------------------------------------------
 
 GM_Ending:
-		sfx	bgm_Fade,0,1,1 ; fadeout music
+		sfx	bgm_Fade ; fadeout music
 		bsr.w	PaletteFadeOut
 
 		lea	(v_objspace).w,a1
@@ -3769,7 +3769,7 @@ End_MainLoop:
 		beq.s	End_ChkEmerald	; if yes, branch
 
 		move.b	#id_Credits,(v_gamemode).w ; goto credits
-		sfx	bgm_Credits,0,1,1 ; play credits music
+		sfx	bgm_Credits ; play credits music
 		move.w	#0,(v_creditsnum).w ; set credits index number to 0
 		rts	
 ; ===========================================================================

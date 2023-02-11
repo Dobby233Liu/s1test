@@ -545,7 +545,7 @@ Obj09_GetEmer:
 		addq.b	#1,(v_emeralds).w ; add 1 to number of emeralds
 
 Obj09_NoEmer:
-		sfx	bgm_Emerald,0,0,0 ;	play emerald music
+		sfx	bgm_Emerald ; play emerald music
 		moveq	#0,d4
 		rts	
 ; ===========================================================================
