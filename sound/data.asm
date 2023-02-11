@@ -76,7 +76,6 @@ SoundPriorities:
 ; their "correct" sped-up main tempos to the list.
 ; byte_71A94:
 SpeedUpIndex:
-		dc.b 0		; Null
 		dc.b 7		; GHZ
 		dc.b $72	; LZ
 		dc.b $73	; MZ
@@ -102,7 +101,6 @@ SpeedUpIndex:
 ; Music	Pointers
 ; ---------------------------------------------------------------------------
 MusicIndex:
-ptr_musnull: dc.l 0 ; I don't know anymore
 ptr_mus81:	dc.l Music81
 ptr_mus82:	dc.l Music82
 ptr_mus83:	dc.l Music83

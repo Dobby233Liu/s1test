@@ -30,6 +30,7 @@ UpdateMusic:
 		jsr	DoFadeIn(pc)
 ; loc_71BB2:
 @skipfadein:
+		; DANGER! The following line only checks v_soundqueue0 and v_soundqueue1, breaking v_soundqueue2.
 		tst.l	v_soundqueue0(a6)	; is a music or sound queued for played?
 		beq.s	@nosndinput		; if not, branch
 		jsr	CycleSoundQueue(pc)
@@ -101,9 +102,10 @@ UpdateMusic:
 @specfmdone:
 		adda.w	#TrackSz,a5
 		tst.b	(a5)			; Is track playing (TrackPlaybackControl)
-		bpl.s	DoStartZ80		; Branch if not
+		bpl.s	@skiplastupdate		; Branch if not
 		jsr	PSGUpdateTrack(pc)
-DoStartZ80:
+; loc_71C44: DoStartZ80
+@skiplastupdate:
 		startZ80
 		rts	
 ; End of function UpdateMusic
@@ -155,10 +157,8 @@ DACUpdateTrack:
 		startZ80
 ; locret_71CAA:
 @locret:
-		rts
+		rts 
 ; End of function DACUpdateTrack
-
-; ===========================================================================
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -170,11 +170,11 @@ FMUpdateTrack:
 		jsr	FMDoNext(pc)
 		jsr	FMPrepareNote(pc)
 		bra.w	FMNoteOn
-		bsr.w   DoModulation ; Clownacy fix 1
 ; ===========================================================================
 ; loc_71CE0:
 @notegoing:
 		jsr	NoteTimeoutUpdate(pc)
+		jsr	DoModulation(pc)
 		bra.w	FMUpdateFreq
 ; End of function FMUpdateTrack
 
@@ -308,26 +308,27 @@ NoteTimeoutUpdate:
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 ; Vladikcomper: Fixed a programming error with stack usage
-
+; sub_71DC6:
 DoModulation:
-		btst	#3,(a5)	; Is modulation active? (TrackPlaybackControl)
-		beq.s	@dontreturn	; Return if not
+		btst	#3,(a5)				; Is modulation active? (TrackPlaybackControl)
+		beq.s	@cont				; Branch if not
 		tst.b	TrackModulationWait(a5)	; Has modulation wait expired?
 		beq.s	@waitdone			; If yes, branch
 		subq.b	#1,TrackModulationWait(a5)	; Update wait timeout
-
-@dontreturn:
+@cont:
 		btst    #1,(a5)     ; Is note playing?
 		bne.s    @locret   ; no - return
 		addq.w  #4,sp       ; ++ Do not return to caller
 		rts
 ; ===========================================================================
+; loc_71DDA:
 @waitdone:
 		subq.b	#1,TrackModulationSpeed(a5)	; Update speed
 		beq.s	@updatemodulation		; If it expired, want to update modulation
-        addq.w  #4,sp       ; ++ Do not return to caller
-        rts
+		addq.w  #4,sp       ; ++ Do not return to caller
+		rts
 ; ===========================================================================
+; loc_71DE2:
 @updatemodulation:
 		movea.l	TrackModulationPtr(a5),a0	; Get modulation data
 		move.b	1(a0),TrackModulationSpeed(a5)	; Restore modulation speed
@@ -335,9 +336,10 @@ DoModulation:
 		bne.s	@calcfreq			; If nonzero, branch
 		move.b	3(a0),TrackModulationSteps(a5)	; Restore from modulation data
 		neg.b	TrackModulationDelta(a5)	; Negate modulation delta
-        addq.w  #4,sp       ; ++ Do not return to caller
-        rts
+		addq.w  #4,sp       ; ++ Do not return to caller
+		rts
 ; ===========================================================================
+; loc_71DFE:
 @calcfreq:
 		subq.b	#1,TrackModulationSteps(a5)	; Update modulation steps
 		move.b	TrackModulationDelta(a5),d6	; Get modulation delta
@@ -345,8 +347,9 @@ DoModulation:
 		add.w	TrackModulationVal(a5),d6	; Add cumulative modulation change
 		move.w	d6,TrackModulationVal(a5)	; Store it
 		add.w	TrackFreq(a5),d6		; Add note frequency to it
+; locret_71E16:
 @locret:
-        rts
+		rts 
 ; End of function DoModulation
 
 
@@ -358,9 +361,7 @@ FMPrepareNote:
 		bne.s	locret_71E48		; Return if so
 		move.w	TrackFreq(a5),d6	; Get current note frequency
 		beq.s	FMSetRest		; Branch if zero
-        ;btst    #3,(a5)     ; check if modulation is active
-        ;beq.s   loc_71E24   ; if not, branch
-        ;add.w   $1C(a5),d6  ; add modulation frequency to d6
+; loc_71E24:
 FMUpdateFreq:
 		move.b	TrackDetune(a5),d0 	; Get detune value
 		ext.w	d0
@@ -414,7 +415,8 @@ PauseMusic:
 		jsr	PSGSilenceAll(pc)
 		stopZ80
 		move.b	#$7F,(z80_dac_sample).l ; pause DAC
-		bra.w	DoStartZ80
+		startZ80
+		rts	
 ; ===========================================================================
 ; loc_71E94:
 @unpausemusic:
@@ -465,7 +467,8 @@ PauseMusic:
 		move.b	#0,(z80_dac_sample).l
 ; loc_71EFE:
 @unpausedallfm:
-		bra.w	DoStartZ80
+		startZ80
+		rts
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	play a sound or	music track
@@ -478,12 +481,13 @@ CycleSoundQueue:
 		lea	(SoundPriorities).l,a0
 		lea	v_soundqueue0(a6),a1	; load music track number
 		move.b	v_sndprio(a6),d3	; Get priority of currently playing SFX
-		moveq	#3-1,d4			; Number of queues-1 (v_soundqueue0, v_soundqueue1, v_soundqueue2)
+		moveq	#(v_soundqueue2-v_soundqueue0),d4			; Number of queues-1 (v_soundqueue0, v_soundqueue1, v_soundqueue2)
 ; loc_71F12:
 @inputloop:
 		move.b	(a1),d0			; move track number to d0
 		move.b	d0,d1
 		clr.b	(a1)+			; Clear entry
+		subi.b	#bgm__First,d0		; Make it into 0-based index
 		cmpi.b	#bgm_None,v_sound_id(a6)	; Is v_sound_id a $80 (silence/empty)?
 		beq.s	@havesound		; If yes, branch
 		move.b	d1,v_soundqueue0(a6)	; Put sound into v_soundqueue0
@@ -492,7 +496,7 @@ CycleSoundQueue:
 ; loc_71F2C:
 @havesound:
 		andi.w	#$7F,d0			; Clear high byte and sign bit
-		move.b	(a0,d0.w),d2		; Get sound type
+		move.b	(a0,d0.w),d2		; Get sound priority
 		cmp.b	d3,d2			; Is it a lower priority sound?
 		blo.s	@nextinput		; Branch if yes
 		move.b	d2,d3			; Store new priority
@@ -518,7 +522,6 @@ PlaySoundID:
 		move.b	v_sound_id(a6),d7
 		beq.w	StopAllSound
 		move.b	#bgm_None,v_sound_id(a6)	; reset	music flag
-ContinueSound_ChkValue:
 		cmpi.b	#bgm__Last,d7	; Is this music ($81-$93)?
 		bls.w	Sound_PlayBGM		; Branch if yes
 		cmpi.b	#sfx__Last,d7		; Is this sfx ($A0-$CF)?
@@ -526,12 +529,12 @@ ContinueSound_ChkValue:
 		cmpi.b	#spec__Last,d7	    ; Is this special sfx ($D0-$DF)?
 		bls.w	Sound_PlaySpecial	; Branch if yes
 		cmpi.b	#flg__Last,d7		; Is this after $E0-$E4?
-		bhi.s	locret_PlaySoundID		; Branch if yes
+		bhi.s	@locret		; Branch if yes
 		; play flg
 		subi.b	#flg__First,d7
 		lsl.w	#2,d7
 		jmp	Sound_ExIndex(pc,d7.w)
-locret_PlaySoundID:
+@locret:
 		rts
 ; ===========================================================================
 
@@ -588,11 +591,11 @@ Sound_PlayBGM:
 @bgm_loadMusic:
 		jsr	InitMusicPlayback(pc)
 		lea	(SpeedUpIndex).l,a4
+		subi.b	#bgm__First,d7
 		move.b	(a4,d7.w),v_speeduptempo(a6)
 		lea	(MusicIndex).l,a4
 		lsl.w	#2,d7
 		movea.l	(a4,d7.w),a4		; a4 now points to (uncompressed) song data
-
 		moveq	#0,d0
 		move.w	(a4),d0			; load voice pointer
 		add.l	a4,d0			; It is a relative pointer
@@ -620,7 +623,7 @@ Sound_PlayBGM:
 		lea	v_music_fmdac_tracks(a6),a1
 		lea	FMDACInitBytes(pc),a2
 ; loc_72098:
-@bgm_fmloadloop:
+@bmg_fmloadloop:
 		bset	#7,(a1)				; Initial playback control: set 'track playing' bit (TrackPlaybackControl)
 		move.b	(a2)+,TrackVoiceControl(a1)	; Voice control bits
 		move.b	d4,TrackTempoDivider(a1)
@@ -633,7 +636,7 @@ Sound_PlayBGM:
 		move.l	d0,TrackDataPointer(a1)	; Store track pointer
 		move.w	(a4)+,TrackTranspose(a1)	; load FM channel modifier
 		adda.w	d6,a1
-		dbf	d7,@bgm_fmloadloop
+		dbf	d7,@bmg_fmloadloop
 		
 		cmpi.b	#7,2(a3)	; Are 7 FM tracks defined?
 		bne.s	@silencefm6
@@ -1222,6 +1225,7 @@ InitMusicPlayback:
 		move.b	f_1up_playing(a6),d2
 		move.b	f_speedup(a6),d3
 		move.b	v_fadein_counter(a6),d4
+		; DANGER! Only v_soundqueue0 and v_soundqueue1 are backed up, once again breaking v_soundqueue2
 		move.l	v_soundqueue0(a6),d5
 		move.w	#((v_music_track_ram_end-v_startofvariables)/4)-1,d0	; Clear $220 bytes: all variables and music track data
 ; loc_725E4:
@@ -1422,27 +1426,31 @@ WriteFMIorII:
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-; ninja'd by Advanced question mark and dalivik composer
-
-WriteFMI:		; XREF: loc_71E6A
-        waitYM
-        move.b    d0,(a0)
-        waitYM
-        move.b    d1,1(a0)
-        rts
- 
-WriteFMIIPart:
-        move.b    1(a5),d2
-        bclr    #2,d2
-        add.b    d2,d0
+; XREF: loc_71E6A sub_7272E
+WriteFMI:
+		waitYM
+		move.b	d0,(ym2612_a0).l
+		waitYM
+		move.b	d1,(ym2612_d0).l
+		rts 
 ; End of function WriteFMI
 
-WriteFMII:                ; XREF: loc_71E6A Sound_ChkValue sub_72764 sub_7256A WriteFMII
-        waitYM
-        move.b    d0,2(a0)
-        waitYM
-        move.b    d1,3(a0)
-        rts
+; ===========================================================================
+; loc_7275A:
+WriteFMIIPart:
+		move.b	TrackVoiceControl(a5),d2 ; Get voice control bits
+		bclr	#2,d2			; Clear chip toggle
+		add.b	d2,d0			; Add in to destination register
+
+; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
+
+; XREF: loc_71E6A Sound_ChkValue sub_72764 sub_7256A WriteFMII
+WriteFMII:
+		waitYM
+		move.b	d0,(ym2612_a1).l
+		waitYM
+		move.b	d1,(ym2612_d1).l
+		rts 
 ; End of function WriteFMII
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -1588,7 +1596,7 @@ PSGDoVolFX:
 ; loc_72960:
 @gotflutter:
 		add.w	d0,d6		; Add volume envelope value to volume
-; Fall-through
+; End of function PSGUpdateVolFX
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -1604,9 +1612,9 @@ SetPSGVolume:
 ; loc_7297C:
 PSGSendVolume:
         cmpi.b  #$10,d6    ; Is volume $10 or higher?
-        blo.s   @psgsendvol    ; Branch if not
+        blo.s   @cont    ; Branch if not
         moveq   #$F,d6     ; Limit to silence and fall through
-@psgsendvol:
+@cont:
 		or.b	TrackVoiceControl(a5),d6 ; Add in track selector bits
 		addi.b	#$10,d6			; Mark it as a volume command
 		move.b	d6,(psg_input).l

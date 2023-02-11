@@ -1943,10 +1943,10 @@ Sega_WaitPal:
 		move.w	#$4E+$1E,(v_demolength).w
 
 Sega_WaitEnd:
-		move.b	#2,(v_vbla_routine).w
-		bsr.w	WaitForVBla
 		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
 		bne.s	Sega_GotoTitle	; if yes, branch
+		move.b	#2,(v_vbla_routine).w
+		bsr.w	WaitForVBla
 		tst.w	(v_demolength).w
 		bne.s	Sega_WaitEnd
 
