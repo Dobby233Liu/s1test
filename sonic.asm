@@ -1937,7 +1937,7 @@ Sega_WaitPal:
 		bsr.w	PalCycle_Sega
 		bne.s	Sega_WaitPal
 
-		sample	$88,0,1,1	; play "SEGA" sound
+		sample	$88	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
 		move.w	#$4E+$1E,(v_demolength).w
@@ -2142,7 +2142,7 @@ Tit_EnterCheat:
 		move.b	#1,(a0,d1.w)	; activate cheat
 		move.b	#1,(a1,d1.w)	; activate cheat 2
 		move.b	#1,(a2,d1.w)	; activate cheat 3
-		sfx	sfx_Ring,0,1,1	; play ring sound when code is entered
+		sfx	sfx_Ring	; play ring sound when code is entered
 		bra.s	Tit_CountC
 ; ===========================================================================
 
@@ -3046,7 +3046,7 @@ Demo_SS:	incbin	"demodata\Intro - Special Stage.bin"
 ; ---------------------------------------------------------------------------
 
 GM_Special:
-		sfx	sfx_EnterSS,0,1,0 ; play special stage entry sound
+		sfx	sfx_EnterSS ; play special stage entry sound
 		bsr.w	PaletteWhiteOut
 		disable_ints
 		lea	(vdp_control_port).l,a6
@@ -3109,7 +3109,7 @@ GM_Special:
 		bsr.w	PalCycle_SS
 		clr.w	(v_ssangle).w	; set stage angle to "upright"
 		move.w	#$40,(v_ssrotate).w ; set stage rotation speed
-		music	bgm_SS,0,1,0	; play special stage BG	music
+		music	bgm_SS	; play special stage BG	music
 		move.w	#0,(v_btnpushtime1).w
 		lea	(DemoDataPtr).l,a1
 		moveq	#6,d0
@@ -3234,7 +3234,7 @@ SS_NormalExit:
 		beq.s	SS_NormalExit
 		tst.l	(v_plc_buffer).w
 		bne.s	SS_NormalExit
-		sfx	sfx_EnterSS,0,1,0 ; play special stage exit sound
+		sfx	sfx_EnterSS ; play special stage exit sound
 		bsr.w	PaletteWhiteOut
 		rts	
 ; ===========================================================================
@@ -3572,7 +3572,7 @@ GM_Continue:
 		jsr	(ContScrCounter).l	; run countdown	(start from 10)
 		moveq	#palid_Continue,d0
 		bsr.w	PalLoad1	; load continue	screen palette
-		music	bgm_Continue,0,1,1	; play continue	music
+		music	bgm_Continue	; play continue	music
 		move.w	#659,(v_demolength).w ; set time delay to 11 seconds
 		clr.l	(v_screenposx).w
 		move.l	#$1000000,(v_screenposy).w
@@ -3711,7 +3711,7 @@ End_LoadData:
 		bsr.w	KosDec
 		moveq	#palid_Sonic,d0
 		bsr.w	PalLoad1	; load Sonic's palette
-		music	bgm_Ending,0,1,0	; play ending sequence music
+		music	bgm_Ending	; play ending sequence music
         tst.b   (f_debugcheat).w ; has debug cheat been entered?
         beq.w   Level_ChkWater  ; if not, branch
 		btst	#bitA,(v_jpadhold1).w ; is button A pressed?
@@ -5459,7 +5459,8 @@ loc_84EE:
 
 loc_84F2:
 		bsr.w	DisplaySprite
-		sfx	sfx_Collapse,1,0,0	; play collapsing sound
+		sfx	sfx_Collapse	; play collapsing sound
+		rts
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Disintegration data for collapsing ledges (MZ, SLZ, SBZ)
@@ -8031,7 +8032,7 @@ SS_AniEmeraldSparks:
 		clr.l	(a0)
 		clr.l	4(a0)
 		move.b	#4,($FFFFD024).w
-		sfx	sfx_SSGoal,0,0,0	; play special stage GOAL sound
+		sfx	sfx_SSGoal	; play special stage GOAL sound
 
 locret_1B60C:
 		rts	
@@ -8191,44 +8192,25 @@ Map_HUD:	include	"_maps\HUD.asm"
 AddPoints:
 		move.b	#1,(f_scorecount).w ; set score counter to update
 
-		if Revision=0
-		lea	(v_scorecopy).w,a2
-		lea	(v_score).w,a3
-		add.l	d0,(a3)		; add d0*10 to the score
-		move.l	#999999,d1
-		cmp.l	(a3),d1		; is score below 999999?
-		bhi.w	@belowmax	; if yes, branch
-		move.l	d1,(a3)		; reset	score to 999999
-		move.l	d1,(a2)
-
+		lea     (v_score).w,a3
+		add.l   d0,(a3)
+		move.l  #999999,d1
+		cmp.l   (a3),d1 ; is score below 999999?
+		bhi.s   @belowmax ; if yes, branch
+		move.l  d1,(a3) ; reset score to 999999
 	@belowmax:
-		move.l	(a3),d0
-		cmp.l	(a2),d0
-		blo.w	@locret_1C6B6
-		move.l	d0,(a2)
+		move.l  (a3),d0
+		cmp.l   (v_scorelife).w,d0 ; has Sonic got 50000+ points?
+		blo.s   @noextralife ; if not, branch
 
-		else
+		addi.l  #5000,(v_scorelife).w ; increase requirement by 50000
+		tst.b   (v_megadrive).w
+		bmi.s   @noextralife ; branch if Mega Drive is Japanese
+		addq.b  #1,(v_lives).w ; give extra life
+		addq.b  #1,(f_lifecount).w
+		music	bgm_ExtraLife
+		rts
 
-			lea     (v_score).w,a3
-			add.l   d0,(a3)
-			move.l  #999999,d1
-			cmp.l   (a3),d1 ; is score below 999999?
-			bhi.s   @belowmax ; if yes, branch
-			move.l  d1,(a3) ; reset score to 999999
-		@belowmax:
-			move.l  (a3),d0
-			cmp.l   (v_scorelife).w,d0 ; has Sonic got 50000+ points?
-			blo.s   @noextralife ; if not, branch
-
-			addi.l  #5000,(v_scorelife).w ; increase requirement by 50000
-			tst.b   (v_megadrive).w
-			bmi.s   @noextralife ; branch if Mega Drive is Japanese
-			addq.b  #1,(v_lives).w ; give extra life
-			addq.b  #1,(f_lifecount).w
-			music	bgm_ExtraLife,1,0,0
-		endc
-
-@locret_1C6B6:
 @noextralife:
 		rts	
 ; End of function AddPoints

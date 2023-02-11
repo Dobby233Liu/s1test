@@ -37,7 +37,8 @@ Sonic_Water:
 		asr	obVelY(a0)	; slow Sonic
 		beq.s	@exit		; branch if Sonic stops moving
 		move.b	#id_Splash,(v_objspace+$300).w ; load splash object
-		sfx	sfx_Splash,1,0,0	 ; play splash sound
+		sfx	sfx_Splash	 ; play splash sound
+		rts
 ; ===========================================================================
 
 @abovewater:
@@ -63,5 +64,6 @@ Sonic_Water:
 		move.w	#-$1000,obVelY(a0) ; set maximum speed on leaving water
 
 	@belowmaxspeed:
-		sfx	sfx_Splash,1,0,0	 ; play splash sound
+		sfx	sfx_Splash	 ; play splash sound
+		rts
 ; End of function Sonic_Water

@@ -67,7 +67,8 @@ Pow_ChkSonic:
 		addq.b	#1,(v_lives).w	; add 1 to number of lives
 		addq.b	#1,(f_lifecount).w ; update the lives counter
 	@playbgm:
-		music	bgm_ExtraLife,1,0,0	; play extra life music
+		music	bgm_ExtraLife	; play extra life music
+		rts
 ; ===========================================================================
 
 Pow_ChkShoes:
@@ -87,7 +88,8 @@ Pow_ChkShoes:
 		move.w	#$40,(v_sonspeeddec).w	; change Sonic's deceleration
 	@isdry:
 	;end Speed Shoes Work Underwater
-		music	bgm_Speedup,1,0,0		; Speed	up the music
+		music	bgm_Speedup		; Speed	up the music
+		rts
 ; ===========================================================================
 
 Pow_ChkShield:
@@ -96,7 +98,7 @@ Pow_ChkShield:
 
 		move.b	#1,(v_shield).w	; give Sonic a shield
 		move.b	#id_ShieldItem,(v_objspace+$180).w ; load shield object ($38)
-		music	sfx_Shield,1,0,0	; play shield sound
+		sfx	sfx_Shield,1,0,0	; play shield sound
 ; ===========================================================================
 
 Pow_ChkInvinc:
@@ -121,12 +123,10 @@ Pow_ChkInvinc_OK:
 		move.b	#4,(v_objspace+$2C0+obAnim).w
 		tst.b	(f_lockscreen).w ; is boss mode on?
 		bne.s	locret_Pow_ChkInvinc_OK	; if yes, branch
-		if Revision=0
-		else
-			cmpi.w	#$C,(v_air).w
-			bls.s	locret_Pow_ChkInvinc_OK
-		endc
-		music	bgm_Invincible,1,0,0 ; play invincibility music
+		cmpi.w	#$C,(v_air).w
+		bls.s	locret_Pow_ChkInvinc_OK
+		music	bgm_Invincible	; play invincibility music
+		rts
 locret_Pow_ChkInvinc_OK:
 		rts
 
@@ -148,7 +148,7 @@ Pow_ChkRings:
 		beq.w	ExtraLife
 
 	Pow_RingSound:
-		music	sfx_Ring,1,0,0	; play ring sound
+		sfx	sfx_Ring,1,0,0	; play ring sound
 ; ===========================================================================
 
 Pow_ChkEnd:

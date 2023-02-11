@@ -39,7 +39,7 @@ loc_1341C:
 	;Mercury Clear Control Lock When Jump
 		clr.w	$3E(a0)	;clear horiz control lock
 	;end Clear Control Lock When Jump
-		sfx	sfx_Jump,0,0,0	; play jumping sound
+		sfx	sfx_Jump	; play jumping sound
 		move.b	#$13,obHeight(a0)
 		move.b	#9,obWidth(a0)
 		btst	#2,obStatus(a0)

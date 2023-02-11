@@ -61,7 +61,8 @@ Sonic_Display:
 	@isdry:
 	;end Speed Shoes Work Underwater
 		move.b	#0,(v_shoes).w	; cancel speed shoes
-		music	bgm_Slowdown,1,0,0	; run music at normal speed
+		music	bgm_Slowdown	; run music at normal speed
+		rts
 
 	@exit:
 		rts	

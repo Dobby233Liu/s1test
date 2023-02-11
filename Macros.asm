@@ -252,27 +252,18 @@ out_of_range:	macro exit,pos
 ; input: track, terminate routine, branch or jump, move operand size
 ; ---------------------------------------------------------------------------
 
-music:		macro track,terminate,branch,byte
+music:		macro track
 		move.b	#track,(v_snddriver_ram+v_soundqueue0).l
-		if terminate=1
-		rts
-		endc
 		endm
 
-sfx:		macro track,terminate,branch,byte
+sfx:		macro track
 		move.b	#track,(v_snddriver_ram+v_soundqueue1).l
-		if terminate=1
-		rts
-		endc
 		endm
 
-sample:		macro track,terminate
+sample:		macro track
 		stopZ80
 		move.b	#track,(z80_dac_sample).l
 		startZ80
-		if terminate=1
-		rts
-		endc
 		endm
 
 ; ---------------------------------------------------------------------------

@@ -247,7 +247,7 @@ RLoss_Count:	; Routine 0
 		moveq   #-1,d0                  ; Move #-1 to d0
 		move.b  d0,obDelayAni(a0)       ; Move d0 to new timer
 		move.b  d0,(v_ani3_time).w      ; Move d0 to old timer (for animated purposes)
-		sfx	sfx_RingLoss,0,0,0	; play ring loss sound
+		sfx	sfx_RingLoss	; play ring loss sound
 
 RLoss_Bounce:	; Routine 2
 		move.b	(v_ani3_frame).w,obFrame(a0)
