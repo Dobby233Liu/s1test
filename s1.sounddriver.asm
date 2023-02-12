@@ -166,14 +166,17 @@ FMUpdateTrack:
 		subq.b	#1,TrackDurationTimeout(a5) ; Update duration timeout
 		bne.s	@notegoing		; Branch if it hasn't expired
 		bclr	#4,(a5)			; Clear 'do not attack next note' bit (TrackPlaybackControl)
-		jsr	FMDoNext(pc)
-		jsr	FMPrepareNote(pc)
+		bsr.s	FMDoNext
+		bsr.w	FMPrepareNote
 		bra.w	FMNoteOn
+		; Clownacy (S2) mod fix
+		bsr.w	DoModulation
+		bra.w	FMUpdateFreq
 ; ===========================================================================
 ; loc_71CE0:
 @notegoing:
-		jsr	NoteTimeoutUpdate(pc)
-		jsr	DoModulation(pc)
+		bsr.w	NoteTimeoutUpdate
+		bsr.w	DoModulation
 		bra.w	FMUpdateFreq
 ; End of function FMUpdateTrack
 
@@ -310,21 +313,22 @@ NoteTimeoutUpdate:
 ; sub_71DC6:
 DoModulation:
 		btst	#3,(a5)				; Is modulation active? (TrackPlaybackControl)
-		beq.s	@cont				; Branch if not
+		beq.s	@locret				; Return if not
+		btst    #1,(a5)     		; Is note playing?
+		bne.s	@locret				; Return if not
 		tst.b	TrackModulationWait(a5)	; Has modulation wait expired?
 		beq.s	@waitdone			; If yes, branch
 		subq.b	#1,TrackModulationWait(a5)	; Update wait timeout
-@cont:
-		btst    #1,(a5)     ; Is note playing?
-		bne.s    @locret   ; no - return
-		addq.w  #4,sp       ; ++ Do not return to caller
+; locret_71E16:
+@locret:
+		addq.w  #4,sp				; ++ Do not return to caller
 		rts
 ; ===========================================================================
 ; loc_71DDA:
 @waitdone:
 		subq.b	#1,TrackModulationSpeed(a5)	; Update speed
 		beq.s	@updatemodulation		; If it expired, want to update modulation
-		addq.w  #4,sp       ; ++ Do not return to caller
+		addq.w  #4,sp       			; ++ Do not return to caller
 		rts
 ; ===========================================================================
 ; loc_71DE2:
@@ -335,7 +339,7 @@ DoModulation:
 		bne.s	@calcfreq			; If nonzero, branch
 		move.b	3(a0),TrackModulationSteps(a5)	; Restore from modulation data
 		neg.b	TrackModulationDelta(a5)	; Negate modulation delta
-		addq.w  #4,sp       ; ++ Do not return to caller
+		addq.w  #4,sp       			; ++ Do not return to caller
 		rts
 ; ===========================================================================
 ; loc_71DFE:
@@ -346,8 +350,6 @@ DoModulation:
 		add.w	TrackModulationVal(a5),d6	; Add cumulative modulation change
 		move.w	d6,TrackModulationVal(a5)	; Store it
 		add.w	TrackFreq(a5),d6		; Add note frequency to it
-; locret_71E16:
-@locret:
 		rts 
 ; End of function DoModulation
 
@@ -360,6 +362,10 @@ FMPrepareNote:
 		bne.s	locret_71E48		; Return if so
 		move.w	TrackFreq(a5),d6	; Get current note frequency
 		beq.s	FMSetRest		; Branch if zero
+		; AF mod fix
+		;btst	#3,(a5)			; check if modulation is active
+		;beq.s	FMUpdateFreq	; if not, branch
+		;add.w	$1C(a5),d6		; add modulation frequency to d6
 ; loc_71E24:
 FMUpdateFreq:
 		move.b	TrackDetune(a5),d0 	; Get detune value
@@ -611,14 +617,14 @@ Sound_PlayBGM:
 		moveq	#0,d1
 		movea.l	a4,a3
 		addq.w	#6,a4			; Point past header
+		move.b	4(a3),d4		; load tempo dividing timing
+		moveq	#TrackSz,d6
+		move.b	#1,d5			; Note duration for first "note"
 		moveq	#0,d7
 		move.b	2(a3),d7		; load number of FM+DAC tracks
 		beq.w	@bgm_fmdone		; branch if zero
 		subq.b	#1,d7
 		move.b	#$C0,d1			; Default AMS+FMS+Panning
-		move.b	4(a3),d4		; load tempo dividing timing
-		moveq	#TrackSz,d6
-		move.b	#1,d5			; Note duration for first "note"
 		lea	v_music_fmdac_tracks(a6),a1
 		lea	FMDACInitBytes(pc),a2
 ; loc_72098:
@@ -1195,6 +1201,9 @@ StopAllSound:
 		moveq	#$2B,d0		; Enable/disable DAC
 		move.b	#$80,d1		; Enable DAC
 		jsr	WriteFMI(pc)
+		move.b	#$B6,d0		; Register: FM3/6 Panning
+		move.b	#$C0,d1		; Value: Enable both channels
+		jsr WriteFMII(pc)	; Write to YM2612 Port 1 (for FM6)
 		moveq	#$27,d0		; Timers, FM3/FM6 mode
 		moveq	#0,d1		; FM3/FM6 normal mode, disable timers
 		jsr	WriteFMI(pc)
@@ -1357,7 +1366,7 @@ DoFadeIn:
 		clr.b	f_fadein_flag(a6)				; Stop fadein
 		tst.b   v_music_track_ram(a6)	; is the DAC channel running?
 		bpl.s   @fadedonenodac			; if not, branch
-		move.b	$B6,d0					; FM channel 6 L/R/AMS/FMS address
+		move.b	#$B6,d0					; FM channel 6 L/R/AMS/FMS address
 		move.b  $4A(a6),d1				; load DAC channel's L/R/AMS/FMS value
 		jsr WriteFMII(pc)				; write to FM 6
 
@@ -1538,8 +1547,12 @@ PSGSetFreq:
 
 ; sub_728DC:
 PSGDoNoteOn:
-		move.w	TrackFreq(a5),d6	; Get note frequency
-		bmi.s	PSGSetRest		; If invalid, branch
+		move.w	TrackFreq(a5),d6			; Get note frequency
+		bmi.s	PSGSetRest					; If invalid, branch
+		; AF mod fix
+		;btst	#3,(a5)						; Is modulation active?
+		;beq.s	PSGUpdateFreq				; if not, branch
+		;add.w	TrackModulationVal(a5),d6	; add modulation frequency to d6
 ; End of function PSGDoNoteOn
 
 
@@ -1640,7 +1653,8 @@ PSGCheckNoteTimeout:
 ; loc_7299A: FlutterDone:
 VolEnvHold:
 		subq.b	#1,TrackVolEnvIndex(a5)	; Decrement volume envelope index
-		rts 
+		subq.b	#1,TrackVolEnvIndex(a5)	; Decrement volume envelope index 2
+		bra.w	PSGDoVolFX
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -1824,9 +1838,9 @@ cfFadeInToPrevious:
 		bset	#1,(a5)		; Set 'track at rest' bit (TrackPlaybackControl)
 		jsr	PSGNoteOff(pc)
 		add.b	d6,TrackVolume(a5)	; Apply current volume fade-in
-        cmpi.b  #$E0,1(a5)	; is this the noise channel?
+        cmpi.b  #$E0,TrackVoiceControl(a5)	; is this the noise channel?
         bne.s   @nextpsg	; no - skip
-        move.b  $1F(a5),(psg_input).l	; restore noise settings
+        move.b  TrackPSGNoise(a5),(psg_input).l	; restore noise settings
 ; loc_72B78:
 @nextpsg:
 		adda.w	#TrackSz,a5
@@ -2098,7 +2112,7 @@ cfStopTrack:
 		tst.b	TrackVoiceControl(a5)	; Is this a PSG track?
 		bmi.s	@stoppsg		; Branch if yes
 		tst.b	f_updating_dac(a6)	; Is this the DAC we are updating?
-		bmi.w	@locexit		; Exit if yes
+		bmi.w	@stopdac		; Branch if yes
 		jsr	FMNoteOff(pc)
 		bra.s	@stoppedchannel
 ; ===========================================================================
@@ -2163,6 +2177,12 @@ cfStopTrack:
 		cmpi.b	#$E0,TrackVoiceControl(a0)	; Is this a noise pointer?
 		bne.s	@locexit			; Branch if not
 		move.b	TrackPSGNoise(a0),(psg_input).l ; Set noise tone
+		bra.s	@locexit
+@stopdac:
+		; Reset panning
+		move.b	#$B6,d0		; Register: FM3/6 Panning
+		move.b	#$C0,d1		; Value: Enable both channels
+		jsr WriteFMII(pc)	; Write to YM2612 Port 1 (for FM6)
 ; loc_72E02:
 @locexit:
 		addq.w	#8,sp		; Tamper with return value so we don't go back to caller
