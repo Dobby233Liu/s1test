@@ -176,13 +176,13 @@ cFM6				EQU $06	; Only in S3/S&K/S3D, overrides DAC
 ; ---------------------------------------------------------------------------------------------
 ; Header Macros
 smpsHeaderStartSong macro ver
-SourceDriver set ver
-songStart set *
+SourceDriver = ver
+songStart = *
 	endm
 
 smpsHeaderStartSongConvert macro ver
-SourceDriver set ver
-songStart set *
+SourceDriver = ver
+songStart = *
 	endm
 
 smpsHeaderVoiceNull macro
@@ -210,7 +210,7 @@ smpsHeaderChan macro fm,psg
 ; Header - Set up Tempo
 smpsHeaderTempo macro div,mod
 	dc.b	div
-tempoDivider set div
+tempoDivider = div
 	dc.b    mod
 	endm
 
@@ -279,11 +279,11 @@ smpsHeaderSFXChannel macro chanid,loc,pitch,vol
 ; Co-ord Flag Macros and Equates
 ; E0xx - Panning, AMS, FMS
 smpsPan macro direction,amsfms
-panNone set $00
-panRight set $40
-panLeft set $80
-panCentre set $C0
-panCenter set $C0 ; silly Americans :U
+panNone = $00
+panRight = $40
+panLeft = $80
+panCentre = $C0
+panCenter = $C0 ; silly Americans :U
 	dc.b $E0,direction+amsfms
 	endm
 
@@ -468,96 +468,96 @@ smpsWeirdD1LRR macro
 ; Macros for FM instruments
 ; Voices - Feedback
 smpsVcFeedback macro val
-vcFeedback set val
+vcFeedback = val
 	endm
 
 ; Voices - Algorithm
 smpsVcAlgorithm macro val
-vcAlgorithm set val
+vcAlgorithm = val
 	endm
 
 smpsVcUnusedBits macro val
-vcUnusedBits set val
+vcUnusedBits = val
 	endm
 
 ; Voices - Detune
 smpsVcDetune macro op1,op2,op3,op4
-vcDT1 set op1
-vcDT2 set op2
-vcDT3 set op3
-vcDT4 set op4
+vcDT1 = op1
+vcDT2 = op2
+vcDT3 = op3
+vcDT4 = op4
 	endm
 
 ; Voices - Coarse-Frequency
 smpsVcCoarseFreq macro op1,op2,op3,op4
-vcCF1 set op1
-vcCF2 set op2
-vcCF3 set op3
-vcCF4 set op4
+vcCF1 = op1
+vcCF2 = op2
+vcCF3 = op3
+vcCF4 = op4
 	endm
 
 ; Voices - Rate Scale
 smpsVcRateScale macro op1,op2,op3,op4
-vcRS1 set op1
-vcRS2 set op2
-vcRS3 set op3
-vcRS4 set op4
+vcRS1 = op1
+vcRS2 = op2
+vcRS3 = op3
+vcRS4 = op4
 	endm
 
 ; Voices - Attack Rate
 smpsVcAttackRate macro op1,op2,op3,op4
-vcAR1 set op1
-vcAR2 set op2
-vcAR3 set op3
-vcAR4 set op4
+vcAR1 = op1
+vcAR2 = op2
+vcAR3 = op3
+vcAR4 = op4
 	endm
 
 ; Voices - Amplitude Modulation
 smpsVcAmpMod macro op1,op2,op3,op4
-vcAM1 set op1
-vcAM2 set op2
-vcAM3 set op3
-vcAM4 set op4
+vcAM1 = op1
+vcAM2 = op2
+vcAM3 = op3
+vcAM4 = op4
 	endm
 
 ; Voices - First Decay Rate
 smpsVcDecayRate1 macro op1,op2,op3,op4
-vcD1R1 set op1
-vcD1R2 set op2
-vcD1R3 set op3
-vcD1R4 set op4
+vcD1R1 = op1
+vcD1R2 = op2
+vcD1R3 = op3
+vcD1R4 = op4
 	endm
 
 ; Voices - Second Decay Rate
 smpsVcDecayRate2 macro op1,op2,op3,op4
-vcD2R1 set op1
-vcD2R2 set op2
-vcD2R3 set op3
-vcD2R4 set op4
+vcD2R1 = op1
+vcD2R2 = op2
+vcD2R3 = op3
+vcD2R4 = op4
 	endm
 
 ; Voices - Decay Level
 smpsVcDecayLevel macro op1,op2,op3,op4
-vcDL1 set op1
-vcDL2 set op2
-vcDL3 set op3
-vcDL4 set op4
+vcDL1 = op1
+vcDL2 = op2
+vcDL3 = op3
+vcDL4 = op4
 	endm
 
 ; Voices - Release Rate
 smpsVcReleaseRate macro op1,op2,op3,op4
-vcRR1 set op1
-vcRR2 set op2
-vcRR3 set op3
-vcRR4 set op4
+vcRR1 = op1
+vcRR2 = op2
+vcRR3 = op3
+vcRR4 = op4
 	endm
 
 ; Voices - Total Level
 smpsVcTotalLevel macro op1,op2,op3,op4
-vcTL1 set op1
-vcTL2 set op2
-vcTL3 set op3
-vcTL4 set op4
+vcTL1 = op1
+vcTL2 = op2
+vcTL3 = op3
+vcTL4 = op4
 	dc.b	(vcUnusedBits<<6)+(vcFeedback<<3)+vcAlgorithm
 	dc.b	(vcDT4<<4)+vcCF4, (vcDT3<<4)+vcCF3, (vcDT2<<4)+vcCF2, (vcDT1<<4)+vcCF1
 	dc.b	(vcRS4<<6)+vcAR4, (vcRS3<<6)+vcAR3, (vcRS2<<6)+vcAR2, (vcRS1<<6)+vcAR1

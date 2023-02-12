@@ -484,9 +484,9 @@ CycleSoundQueue:
 		move.b	(a1),d0			; move track number to d0
 		move.b	d0,d1
 		clr.b	(a1)+			; Clear entry
-		subi.b	#bgm__First,d0		; Make it into 0-based index
 		cmpi.b	#bgm_None,d1	; If negative (i.e., it was $80 or lower), branch
 		beq.s	@nextinput
+		subi.b	#bgm__First,d0		; Make it into 0-based index
 		cmpi.b	#bgm_None,v_sound_id(a6)	; Is v_sound_id a $80 (silence/empty)?
 		beq.s	@havesound		; If yes, branch
 		move.b	d1,v_soundqueue0(a6)	; Put sound into v_soundqueue0
@@ -521,14 +521,14 @@ PlaySoundID:
 		move.b	v_sound_id(a6),d7
 		beq.w	StopAllSound
 		move.b	#bgm_None,v_sound_id(a6)	; reset	music flag
-		cmpi.b	#bgm__Last,d7	; Is this music ($81-$93)?
-		bls.w	Sound_PlayBGM		; Branch if yes
-		cmpi.b	#sfx__Last,d7		; Is this sfx ($A0-$CF)?
-		bls.w	Sound_PlaySFX		; Branch if yes
-		cmpi.b	#spec__Last,d7	    ; Is this special sfx ($D0-$DF)?
-		bls.w	Sound_PlaySpecial	; Branch if yes
-		cmpi.b	#flg__Last,d7		; Is this after $E0-$E4?
-		bhi.s	@locret		; Branch if yes
+		cmpi.b	#bgm__Last,d7				; Is this music ($81-$93)?
+		bls.w	Sound_PlayBGM				; Branch if yes
+		cmpi.b	#sfx__Last,d7				; Is this sfx ($A0-$CF)?
+		bls.w	Sound_PlaySFX				; Branch if yes
+		cmpi.b	#spec__Last,d7	  			; Is this special sfx ($D0-$DF)?
+		bls.w	Sound_PlaySpecial			; Branch if yes
+		cmpi.b	#flg__Last,d7				; Is this after $E0-$E4?
+		bhi.s	@locret						; Branch if yes
 		; play flg
 		subi.b	#flg__First,d7
 		lsl.w	#2,d7

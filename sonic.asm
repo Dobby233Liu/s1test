@@ -7,12 +7,19 @@
 
 ; ===========================================================================
 
+		;opt	l@					; @ is the local label symbol
+		;opt	ae-					; automatic evens are disabled by default
+		;opt	ws+					; allow statements to contain white-spaces
+		opt	w+					; print warnings
+		;opt	m+					; do not expand macros - if enabled, this can break assembling
+
 	include	"Constants.asm"
 	include	"Variables.asm"
+	include	"Macros - More CPUs.asm"
 	include	"Macros.asm"
 
-EnableSRAM:	equ 1	; change to 1 to enable SRAM
-BackupSRAM:	equ 1
+EnableSRAM:		equ 1	; change to 1 to enable SRAM
+BackupSRAM:		equ 1
 AddressSRAM:	equ 3	; 0 = odd+even; 2 = even only; 3 = odd only
 
 ; Change to 0 to build the original version of the game, dubbed REV00
@@ -22,7 +29,7 @@ Revision:	equ 2 ; consider: 1 for reality and 2 for virutal.
 
 ZoneCount:	equ 6	; discrete zones are: GHZ, MZ, SYZ, LZ, SLZ, and SBZ
 
-OptimiseSound:	equ 0	; change to 1 to optimise sound queuing (doesn't work)
+		cpu	68000
 
 ; ===========================================================================
 
@@ -121,15 +128,7 @@ EndOfHeader:
 ; freeze the 68000. Unlike Sonic 2, Sonic 1 uses the 68000 for playing music, so it stops too
 
 ErrorTrap:
-		move.l	#$C0000000,(vdp_control_port).l ; set VDP to CRAM write
-		moveq	#$3F,d7
-
-	@fillred:
-		move.w	#cRed,(vdp_data_port).l ; fill palette with red
-		dbf	d7,@fillred	; repeat $3F more times
-
-	@endlessloop:
-		bra.s	@endlessloop
+		bra.s	ErrorTrap
 ; ===========================================================================
 
 ;-------------------------------------------------------------------------
@@ -304,31 +303,38 @@ SetupValues:
    
    
    Z80_Startup:
-		dc.b $AF		; xor	a
-		dc.b $01, $D9, $1F	; ld	bc,1fd9h
-		dc.b $11, $27, $00	; ld	de,0027h
-		dc.b $21, $26, $00	; ld	hl,0026h
-		dc.b $F9		; ld	sp,hl
-		dc.b $77		; ld	(hl),a
-		dc.b $ED, $B0		; ldir
-		dc.b $DD, $E1		; pop	ix
-		dc.b $FD, $E1		; pop	iy
-		dc.b $ED, $47		; ld	i,a
-		dc.b $ED, $4F		; ld	r,a
-		dc.b $D1		; pop	de
-		dc.b $E1		; pop	hl
-		dc.b $F1		; pop	af
-		dc.b $08		; ex	af,af'
-		dc.b $D9		; exx
-		dc.b $C1		; pop	bc
-		dc.b $D1		; pop	de
-		dc.b $E1		; pop	hl
-		dc.b $F1		; pop	af
-		dc.b $F9		; ld	sp,hl
-		dc.b $F3		; di
-		dc.b $ED, $56		; im1
-		dc.b $36, $E9		; ld	(hl),e9h
-		dc.b $E9		; jp	(hl) 
+		; Cut down from Sega's original: the 68K now clears the Z80 RAM,
+		; so this just handles clearing the registers.
+		cpu	  Z80
+		phase	0
+
+		xor	a					; clear a
+		ld	sp,.end				; set stack pointer to end of program (causing all of the pops to fill registers with 0)
+		pop	ix					; clear all other registers
+		pop	iy
+		ld	i,a
+		ld	r,a
+		pop	bc
+		pop	de
+		pop	hl
+		pop	af
+
+
+		ex	af,af				; swap af with af'
+		exx						; swap bc, de, and hl
+		pop	bc					; clear the shadow registers as well
+		pop	de
+		pop	hl
+		pop	af
+		ld	sp,hl				; clear stack pointer
+
+		di						; disable interrupts
+	@a:	jp @a			; jump here to stay here forever
+
+   .end:						; the space from here til end of Z80 RAM will be filled with 00's
+		even					; align the Z80 start up code to the next even byte. Values below require alignment
+		dephase
+		cpu 68000
    Z80_Startup_end:
 
 		dc.b	$9F,$BF,$DF,$FF				; PSG mute values (PSG 1 to 4) 
@@ -1955,11 +1961,11 @@ Sega_GotoTitle:
 
 GM_Title:
 		sfx	bgm_Stop	; stop music
+		move.w	#bgm_None+1,(v_levselsound).w
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
 		bsr.w	PaletteFadeOut
 		disable_ints
-		bsr.w	SoundDriverLoad
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; 8-colour mode
 		move.w	#$8200+(vram_fg>>10),(a6) ; set foreground nametable address
@@ -2287,80 +2293,7 @@ PlayLevel:
 		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		sfx	bgm_Fade ; fade out music
-		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Level	select code
-; ---------------------------------------------------------------------------
-LevSelCode_J:
-		dc.b btnUp,btnDn,btnL,btnR,0,$FF
-		even
-; ===========================================================================
-
-; ---------------------------------------------------------------------------
-; Demo mode
-; ---------------------------------------------------------------------------
-
-GotoDemo:
-		move.w	#$1E,(v_demolength).w
-
-loc_33B6:
-		move.b	#4,(v_vbla_routine).w
-		bsr.w	WaitForVBla
-		bsr.w	DeformLayers
-		bsr.w	PaletteCycle
-		bsr.w	RunPLC
-		move.w	(v_objspace+obX).w,d0
-		addq.w	#2,d0
-		move.w	d0,(v_objspace+obX).w
-		cmpi.w	#$1C00,d0
-		blo.s	loc_33E4
-		move.b	#id_Sega,(v_gamemode).w
-		rts	
-; ===========================================================================
-
-loc_33E4:
-		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
-		bne.w	Tit_ChkLevSel	; if yes, branch
-		tst.w	(v_demolength).w
-		bne.w	loc_33B6
-		sfx	bgm_Fade ; fade out music
-		move.w	(v_demonum).w,d0 ; load	demo number
-		andi.w	#7,d0
-		add.w	d0,d0
-		move.w	Demo_Levels(pc,d0.w),d0	; load level number for	demo
-		move.w	d0,(v_zone).w
-		addq.w	#1,(v_demonum).w ; add 1 to demo number
-		cmpi.w	#4,(v_demonum).w ; is demo number less than 4?
-		blo.s	loc_3422	; if yes, branch
-		move.w	#0,(v_demonum).w ; reset demo number to	0
-
-loc_3422:
-		move.w	#1,(f_demo).w	; turn demo mode on
-		move.b	#id_Demo,(v_gamemode).w ; set screen mode to 08 (demo)
-		cmpi.w	#$600,d0	; is level number 0600 (special	stage)?
-		bne.s	Demo_Level	; if not, branch
-		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
-		clr.w	(v_zone).w	; clear	level number
-		clr.b	(v_lastspecial).w ; clear special stage number
-
-Demo_Level:
-		move.b	#3,(v_lives).w	; set lives to 3
-		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
-		move.l	d0,(v_time).w	; clear time
-		move.l	d0,(v_score).w	; clear score
-		if Revision=0
-		else
-			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
-		endc
-		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Levels used in demos
-; ---------------------------------------------------------------------------
-Demo_Levels:	incbin	"misc\Demo Level Order - Intro.bin"
-		even
+		rts 
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to	change what you're selecting in the level select
@@ -2412,16 +2345,17 @@ LevSel_SndTest:
 		btst	#bitL,d1	; is left pressed?
 		beq.s	LevSel_Right	; if not, branch
 		subq.w	#1,d0		; subtract 1 from sound	test
-		bhs.s	LevSel_Right
-		moveq	#$00,d0		; if sound test	moves below 0, set to $00
+		cmpi.w	#bgm_None,d0
+		bhi.s	LevSel_Right
+		moveq	#snd__Last+2,d0		; if sound test	moves below bgm_None+1, set to last sound
 
 LevSel_Right:
 		btst	#bitR,d1	; is right pressed?
 		beq.s	LevSel_Refresh2	; if not, branch
 		addq.w	#1,d0		; add 1	to sound test
-		;cmpi.w	#$50,d0
-		;blo.s	LevSel_Refresh2
-		;moveq	#0,d0		; if sound test	moves above $4F, set to	0
+		cmpi.w	#snd__Last+2+1,d0
+		blo.s	LevSel_Refresh2
+		moveq	#bgm_None+1,d0		; if sound test	moves above $4F, set to	first BGM
 
 LevSel_Refresh2:
 		move.w	d0,(v_levselsound).w ; set sound test number
@@ -2439,7 +2373,6 @@ LevSel_NoMove:
 
 
 LevSelTextLoad:
-
 	textpos:	= ($40000000+(($E210&$3FFF)<<16)+(($E210&$C000)>>14))
 					; $E210 is a VRAM address
 
@@ -2529,11 +2462,86 @@ LevSel_ChgLine:
 
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
+; Level	select code
+; ---------------------------------------------------------------------------
+LevSelCode_J:
+		dc.b btnUp,btnDn,btnL,btnR,0,$FF
+		even
+
+; ---------------------------------------------------------------------------
 ; Level	select menu text
 ; ---------------------------------------------------------------------------
 LevelMenuText:
 		incbin	"misc\Level Select Text (JP1).bin"
 		even
+; ===========================================================================
+
+; ---------------------------------------------------------------------------
+; Demo mode
+; ---------------------------------------------------------------------------
+
+GotoDemo:
+		move.w	#$1E,(v_demolength).w
+
+loc_33B6:
+		move.b	#4,(v_vbla_routine).w
+		bsr.w	WaitForVBla
+		bsr.w	DeformLayers
+		bsr.w	PaletteCycle
+		bsr.w	RunPLC
+		move.w	(v_objspace+obX).w,d0
+		addq.w	#2,d0
+		move.w	d0,(v_objspace+obX).w
+		cmpi.w	#$1C00,d0
+		blo.s	loc_33E4
+		move.b	#id_Sega,(v_gamemode).w
+		rts	
+; ===========================================================================
+
+loc_33E4:
+		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
+		bne.w	Tit_ChkLevSel	; if yes, branch
+		tst.w	(v_demolength).w
+		bne.w	loc_33B6
+		sfx	bgm_Fade ; fade out music
+		move.w	(v_demonum).w,d0 ; load	demo number
+		andi.w	#7,d0
+		add.w	d0,d0
+		move.w	Demo_Levels(pc,d0.w),d0	; load level number for	demo
+		move.w	d0,(v_zone).w
+		addq.w	#1,(v_demonum).w ; add 1 to demo number
+		cmpi.w	#4,(v_demonum).w ; is demo number less than 4?
+		blo.s	loc_3422	; if yes, branch
+		move.w	#0,(v_demonum).w ; reset demo number to	0
+
+loc_3422:
+		move.w	#1,(f_demo).w	; turn demo mode on
+		move.b	#id_Demo,(v_gamemode).w ; set screen mode to 08 (demo)
+		cmpi.w	#$600,d0	; is level number 0600 (special	stage)?
+		bne.s	Demo_Level	; if not, branch
+		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
+		clr.w	(v_zone).w	; clear	level number
+		clr.b	(v_lastspecial).w ; clear special stage number
+
+Demo_Level:
+		move.b	#3,(v_lives).w	; set lives to 3
+		moveq	#0,d0
+		move.w	d0,(v_rings).w	; clear rings
+		move.l	d0,(v_time).w	; clear time
+		move.l	d0,(v_score).w	; clear score
+		if Revision=0
+		else
+			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
+		endc
+		rts	
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Levels used in demos
+; ---------------------------------------------------------------------------
+Demo_Levels:	incbin	"misc\Demo Level Order - Intro.bin"
+		even
+
+; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Music	playlist
 ; ---------------------------------------------------------------------------
@@ -6197,8 +6205,9 @@ BuildSprites:
 		btst	#5,d4		; is static mappings flag on?
 		bne.s	@drawFrame	; if yes, branch
 		move.b	obFrame(a0),d1
-		add.b	d1,d1
+		add.w	d1,d1
 		adda.w	(a1,d1.w),a1	; get mappings frame address
+		moveq	#0,d1			; MJ: clear d1 (because of our byte to word change)
 		move.b	(a1)+,d1	; number of sprite pieces
 		subq.b	#1,d1
 		bmi.s	@setVisible

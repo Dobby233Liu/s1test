@@ -292,6 +292,8 @@ bgm_Slowdown:	equ ((ptr_flgE3-Sound_ExIndex)/4)+flg__First
 bgm_Stop:	equ ((ptr_flgE4-Sound_ExIndex)/4)+flg__First
 flg__Last:	equ ((ptr_flgend-Sound_ExIndex-4)/4)+flg__First
 
+snd__Last:  equ flg__Last
+
 ; Sonic frame IDs
 fr_Null:	equ 0
 fr_Stand:	equ 1
