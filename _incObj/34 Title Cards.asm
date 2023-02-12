@@ -13,7 +13,7 @@ Card_Index:	dc.w Card_Init-Card_Index
 		dc.w Card_Wait-Card_Index
 		dc.w Card_Wait-Card_Index
 
-card_mainX:	equ $30			; AST: position for card to display on
+card_mainX:		equ $30		; AST: position for card to display on
 card_finalX:	equ $32		; AST: position for card to finish on
 ; ===========================================================================
 
@@ -22,17 +22,16 @@ Card_Init:	; Routine 0
 	moveq	#0,d0
 	move.b	(v_zone).w,d0
 	move.w 	d0,d2
-
-Card_CheckSBZ3:
-	; cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; check if level is SBZ 3
-	; bne.s		Card_CheckFZ
-	; moveq		#5,d0		; load title card number 5 (SBZ)
-	; move.w 	d0,d2
-Card_CheckFZ:
-	cmpi.b	#id_Ending,(v_zone).w ; check if level is Ending (byte check works with both acts)
+@CheckSBZ3:
+	cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; check if level is SBZ 3
+	bne.s	@CheckFZ
+	moveq	#5,d0		; load title card number 5 (SBZ)
+	move.w 	d0,d2
+@CheckFZ:
+	cmpi.w	#(id_SBZ<<8)+2,(v_zone).w ; check if level is Ending (byte check works with both acts)
 	bne.s	Card_LoadConfig
-	moveq	#7,d0		; load title card number 7 (Ending)
-	moveq	#$C,d2		; use "ENDING" mappings
+	moveq	#7,d0		; load title card number 7 (Final Zone)
+	move.w 	d0,d2
 
 Card_LoadConfig:
 	lea	(Card_ConData).l,a3
@@ -53,8 +52,10 @@ Card_Loop:
 		move.b	d2,d0
 
 	Card_ActNumber:
-		cmpi.b	#7,d0
+		cmpi.b	#$9,d0
 		bne.s	Card_MakeSprite
+		cmpi.w	#(id_SBZ<<8)+2,(v_zone).w
+		bhs.s	Card_Loop_cont
 		add.b	(v_act).w,d0
 		cmpi.b	#3,(v_act).w
 		bne.s	Card_MakeSprite
@@ -68,6 +69,8 @@ Card_Loop:
 		move.b	#0,obRender(a1)
 		move.b	#0,obPriority(a1)
 		move.w	#60,obTimeFrame(a1) ; set time delay to 1 second
+
+	Card_Loop_cont:
 		lea	$40(a1),a1	; next object
 		dbf	d1,Card_Loop	; repeat sequence another 3 times
 
@@ -137,14 +140,15 @@ Card_ChangeArt:
 Card_Delete:
 		bra.w	DeleteObject
 ; ===========================================================================
-Card_ItemData:	dc.w $D0	; y-axis position
+Card_ItemData:
+		dc.w $D0	; y-axis position
 		dc.b 2,	0	; routine number, frame	number (changes)
 		dc.w $E4
-		dc.b 2,	6
+		dc.b 2,	8
 		dc.w $EA
-		dc.b 2,	7
+		dc.b 2,	9
 		dc.w $E0
-		dc.b 2,	$A
+		dc.b 2,	$C
 ; ---------------------------------------------------------------------------
 ; Title	card configuration data
 ; Format:
@@ -158,5 +162,5 @@ Card_ConData:	dc.w 0,	$120, $FEFC, $13C, $414, $154, $214, $154 ; GHZ
 				dc.w 0,	$120, $FEFC, $13C, $414, $154, $214, $154 ; SYZ
 				dc.w 0,	$120, $FEFC, $13C, $414, $154, $214, $154 ; SBZ
 				dc.w 0,	$120, $FEE4, $144, $3EC, $3EC, $214, $154 ; FZ
-				dc.w 0,	$120, $FEE4, $144, $3EC, $3EC, $214, $154 ; Ending
+				dc.w 0,	$120, $FEFC, $13C, $414, $154, $214, $154 ; Ending
 ; ===========================================================================

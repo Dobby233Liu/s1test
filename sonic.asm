@@ -236,7 +236,7 @@ EntryPoint:
 	.set_region:
 		andi.b	#$C0,d6					; get region and speed settings
 		move.b	d6,(v_megadrive).w			; set in RAM
-		
+
 	.set_vdp_buffer:
 		move.b	SetupVDP(pc),d4				; get first entry of SetupVDP
 		ori.w	#$8100,d4				; make it a valid command word ($8134)
@@ -5717,19 +5717,20 @@ Map_Push:	include	"_maps\Pushable Blocks.asm"
 ; ---------------------------------------------------------------------------
 ; Sprite mappings - zone title cards
 ; ---------------------------------------------------------------------------
-Map_Card:	dc.w M_Card_GHZ-Map_Card
+Map_Card:
+		dc.w M_Card_GHZ-Map_Card
 		dc.w M_Card_LZ-Map_Card
 		dc.w M_Card_MZ-Map_Card
 		dc.w M_Card_SLZ-Map_Card
 		dc.w M_Card_SYZ-Map_Card
 		dc.w M_Card_SBZ-Map_Card
+		dc.w M_Card_Empty-Map_Card
+		dc.w M_Card_FZ-Map_Card
 		dc.w M_Card_Zone-Map_Card
 		dc.w M_Card_Act1-Map_Card
 		dc.w M_Card_Act2-Map_Card
 		dc.w M_Card_Act3-Map_Card
 		dc.w M_Card_Oval-Map_Card
-		dc.w M_Card_FZ-Map_Card
-		dc.w M_Card_Ending-Map_Card
 
 M_Card_GHZ:	dc.b 9 			; GREEN HILL
 		dc.b $F8, 5, 0,	$18, $B4
@@ -5796,6 +5797,15 @@ M_Card_SBZ:	dc.b $A			; SCRAP BRAIN
 		dc.b $F8, 1, 0,	$20, $3C
 		dc.b $F8, 5, 0,	$2E, $44
 		even
+M_Card_Empty:	dc.b 0
+		even
+M_Card_FZ:	dc.b 5			; FINAL
+		dc.b $F8, 5, 0,	$14, $DC
+		dc.b $F8, 1, 0,	$20, $EC
+		dc.b $F8, 5, 0,	$2E, $F4
+		dc.b $F8, 5, 0,	$00, $04
+		dc.b $F8, 5, 0,	$26, $14
+		even
 M_Card_Zone:	dc.b 4			; ZONE
 		dc.b $F8, 5, 0,	$4E, $E0
 		dc.b $F8, 5, 0,	$32, $F0
@@ -5825,21 +5835,6 @@ M_Card_Oval:	dc.b $D			; Oval
 		dc.b $FC, 8, 0,	$7C, $F4
 		dc.b 4,	$C, 0, $7C, $EC
 		dc.b $C, 8, 0, $7C, $EC
-		even
-M_Card_FZ:	dc.b 5			; FINAL
-		dc.b $F8, 5, 0,	$14, $DC
-		dc.b $F8, 1, 0,	$20, $EC
-		dc.b $F8, 5, 0,	$2E, $F4
-		dc.b $F8, 5, 0,	0, 4
-		dc.b $F8, 5, 0,	$26, $14
-		even
-M_Card_Ending: ; Ending
-		dc.b $F8, 5, 0, $10, $F4	; E
-		dc.b $F8, 5, 0, $2E, $4		; N
-		dc.b $F8, 5, 0, $0C, $14	; D
-		dc.b $F8, 1, 0, $20, $24	; I
-		dc.b $F8, 5, 0, $2E, $2C	; N
-		dc.b $F8, 5, 0, $18, $3C	; G
 		even
 
 Map_Over:	include	"_maps\Game Over.asm"
