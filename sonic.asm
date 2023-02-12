@@ -1961,7 +1961,7 @@ Sega_GotoTitle:
 
 GM_Title:
 		sfx	bgm_Stop	; stop music
-		move.w	#bgm_None+1,(v_levselsound).w
+		move.w	#bgm__First,(v_levselsound).w
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
 		bsr.w	PaletteFadeOut
@@ -2270,6 +2270,7 @@ LevelSelect:
 		bsr.w	PlaySound_Special
 		bra.w	LevelSelect
 @ending:
+		music	bgm_Stop
 		move.w	#(id_EndZ<<8),(v_zone).w ; set level to 0600 (Ending)
 		move.b	#id_Ending,(v_gamemode).w ; set screen mode to $18 (Ending)
 		rts	
@@ -2345,17 +2346,17 @@ LevSel_SndTest:
 		btst	#bitL,d1	; is left pressed?
 		beq.s	LevSel_Right	; if not, branch
 		subq.w	#1,d0		; subtract 1 from sound	test
-		cmpi.w	#bgm_None,d0
-		bhi.s	LevSel_Right
-		moveq	#snd__Last+2,d0		; if sound test	moves below bgm_None+1, set to last sound
+		cmpi.w	#bgm__First,d0
+		bhs.s	LevSel_Right
+		moveq	#snd__Last+2,d0		; if sound test moves below bgm__First, set to credits
 
 LevSel_Right:
-		btst	#bitR,d1	; is right pressed?
-		beq.s	LevSel_Refresh2	; if not, branch
-		addq.w	#1,d0		; add 1	to sound test
-		cmpi.w	#snd__Last+2+1,d0
-		blo.s	LevSel_Refresh2
-		moveq	#bgm_None+1,d0		; if sound test	moves above $4F, set to	first BGM
+		btst	#bitR,d1			; is right pressed?
+		beq.s	LevSel_Refresh2		; if not, branch
+		addq.w	#1,d0				; add 1	to sound test
+		cmpi.w	#snd__Last+2,d0	; 2 for ending and credits
+		bls.s	LevSel_Refresh2
+		moveq	#bgm__First,d0		; if sound test	moves above snd__Last+2, set to	first BGM
 
 LevSel_Refresh2:
 		move.w	d0,(v_levselsound).w ; set sound test number
@@ -2410,7 +2411,7 @@ LevSelTextLoad:
 		move.w	#$C680,d3
 
 LevSel_DrawSnd:
-		locVRAM	$EC30		; sound test position on screen
+		locVRAM	$EC3C		; sound test position on screen
 		move.w	(v_levselsound).w,d0
 		;addi.w	#$80,d0
 		move.b	d0,d2
