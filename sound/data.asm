@@ -323,9 +323,9 @@ SoundD0:	include	"sound/sfx/SndD0 - Waterfall.asm"
 	IncludeDAC	kick, wav
 	IncludeDAC	snare, wav
 	IncludeDAC	timpani, wav
-	IncludeDAC	timpanih, wav
-	IncludeDAC	timpanim, wav
-	IncludeDAC	timpaniml, wav
-	IncludeDAC	timpanil, wav
+	;IncludeDAC	timpanih, wav
+	;IncludeDAC	timpanim, wav
+	;IncludeDAC	timpaniml, wav
+	;IncludeDAC	timpanil, wav
 	IncludeDAC	sega, wav
 	even

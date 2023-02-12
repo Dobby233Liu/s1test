@@ -55,13 +55,13 @@ MegaPCM:
 ; DAC Samples Table
 ; ---------------------------------------------------------------
 
-	DAC_Entry	$19, kick, pcm			; $81	- Kick
-	DAC_Entry	$0B, snare, pcm			; $82	- Snare
-	DAC_Entry	$20, timpani, pcm		; $83	- Timpani
-	DAC_Entry	$17, timpanih, pcm		; $84	- Hi-Timpani
-	DAC_Entry	$1A, timpanim, pcm		; $85	- Mid-Timpani
-	DAC_Entry	$21, timpaniml, pcm		; $86	- Mid-Low-Timpani
-	DAC_Entry	$22, timpanil, pcm		; $87	- Low-Timpani
+	DAC_Entry	$05, kick, pcm			; $81	- Kick
+	DAC_Entry	$05, snare, pcm			; $82	- Snare
+	DAC_Entry	$08, timpani, pcm		; $83	- Timpani
+	DAC_Entry	$02, timpani, pcm		; $84	- Hi-Timpani
+	DAC_Entry	$04, timpani, pcm		; $85	- Mid-Timpani
+	DAC_Entry	$06, timpani, pcm		; $86	- Mid-Low-Timpani
+	DAC_Entry	$08, timpani, pcm		; $87	- Low-Timpani
 	DAC_Entry	$05, sega, pcm+pri		; $88	- "Sega" sound
 
 MegaPCM_End:
