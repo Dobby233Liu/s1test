@@ -7,9 +7,9 @@ Object Def: objdef\s1obj
 
 8x8 Tiles: ..\artnem\8x8 - SLZ.bin
 
-16x16 Tiles:   ..\map16\SLZ.bin
+16x16 Tiles:   ..\map16_u\SLZ.bin
 
-256x256 Tiles: ..\map256\SLZ.bin
+256x256 Tiles: ..\map256_u\SLZ.bin
 
 FG Layout: ..\levels\slz3.bin
 BG Layout: ..\levels\slzbg.bin

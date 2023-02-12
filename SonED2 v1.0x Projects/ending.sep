@@ -7,9 +7,9 @@ Object Def: objdef\s1obj
 
 8x8 Tiles: ghz.bin
 
-16x16 Tiles:   ..\map16\GHZ.bin
+16x16 Tiles:   ..\map16_u\GHZ.bin
 
-256x256 Tiles: ..\map256\GHZ.bin
+256x256 Tiles: ..\map256_u\GHZ.bin
 
 FG Layout: ..\levels\ending.bin
 BG Layout: ..\levels\ghzbg.bin

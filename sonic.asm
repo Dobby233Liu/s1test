@@ -569,10 +569,10 @@ VBlank:
 
 VBla_Music:
 		enable_ints
-		bset    #0,(f_smps_running).w    ; set "SMPS running flag"
-		bne.s   VBla_Exit       ; if it was set already, don't call another instance of SMPS
-        jsr 	UpdateMusic     ; run SMPS
-		clr.b   (f_smps_running).w       ; reset "SMPS running flag"
+		bset	#0,(f_smps_running).w	; set "SMPS running flag"
+		bne.s	VBla_Exit				; if it was set already, don't call another instance of SMPS
+        jsr 	UpdateMusic     		; run SMPS
+		clr.b	(f_smps_running).w		; reset "SMPS running flag"
 
 VBla_Exit:
 		addq.l	#1,(v_vbla_count).w
@@ -620,7 +620,7 @@ VBla_00:
 	@waterbelow:
 		move.w	(v_hbla_hreg).w,(a5)
 @end:
-		bra.w VBla_Music
+		bra.w	VBla_Music
 ; ===========================================================================
 
 VBla_02:
@@ -1907,13 +1907,9 @@ GM_Sega:
 		locVRAM	0
 		lea	(Nem_SegaLogo).l,a0 ; load Sega	logo patterns
 		bsr.w	NemDec
-		lea	($FF0000).l,a1
-		lea	(Eni_SegaLogo).l,a0 ; load Sega	logo mappings
-		move.w	#0,d0
-		bsr.w	EniDec
 
-		copyTilemap	$FF0000,$E510,$17,7
-		copyTilemap	$FF0180,$C000,$27,$1B
+		copyTilemap	Eni_SegaLogo,$E510,$17,7
+		copyTilemap	Eni_SegaLogo+$180,$C000,$27,$1B
 
 		tst.b   (v_megadrive).w	; is console Japanese?
 		bmi.s   @loadpal
@@ -2032,13 +2028,8 @@ GM_Title:
 		clr.b 	(f_nobgscroll).w ; IsoKilo fix
 		bsr.w	LevelSizeLoad
 		bsr.w	DeformLayers
-		lea	(v_16x16).w,a1
-		lea	(Blk16_GHZ).l,a0 ; load	GHZ 16x16 mappings
-		move.w	#0,d0
-		bsr.w	EniDec
-		lea	(Blk256_GHZ).l,a0 ; load GHZ 256x256 mappings
-		lea	(v_256x256).l,a1
-		bsr.w	KosDec
+		move.l	#Blk16_GHZ,(v_16x16).l		; use GHZ 16x mappings
+		move.l	#Blk256_GHZ,(v_256x256).l	; use GHZ 256x mappings
 		bsr.w	LevelLayoutLoad
 		bsr.w	PaletteFadeOut
 		disable_ints
@@ -2049,12 +2040,8 @@ GM_Title:
 		lea	(v_lvllayout+$40).w,a4
 		move.w	#$6000,d2
 		bsr.w	DrawChunks
-		lea	($FF0000).l,a1
-		lea	(Eni_Title).l,a0 ; load	title screen mappings
-		move.w	#0,d0
-		bsr.w	EniDec
 
-		copyTilemap	$FF0000,$C208,$21,$15 ; KoH Center
+		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
 
 		locVRAM	0
 		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
@@ -3156,11 +3143,7 @@ SS_MainLoop:
 		beq.w	SS_MainLoop	; if yes, branch
 
 		tst.w	(f_demo).w	; is demo mode on?
-		if Revision=0
-		bne.w	SS_ToSegaScreen	; if yes, branch
-		else
 		bne.w	SS_ToLevel
-		endc
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
 		cmpi.w	#(id_SBZ<<8)+3,(v_zone).w ; is level number higher than FZ?
 		blo.s	SS_Finish	; if not, branch
@@ -3242,12 +3225,10 @@ SS_ToSegaScreen:
 		move.b	#id_Sega,(v_gamemode).w ; goto Sega screen
 		rts
 
-		if Revision=0
-		else
-SS_ToLevel:	cmpi.b	#id_Level,(v_gamemode).w
+SS_ToLevel:
+		cmpi.b	#id_Level,(v_gamemode).w
 		beq.s	SS_ToSegaScreen
 		rts
-		endc
 
 ; ---------------------------------------------------------------------------
 ; Special stage	background loading subroutine
@@ -4834,16 +4815,10 @@ DrawFlipXY:
 ; a1 = Address of block
 ; DrawBlocks:
 GetBlockData:
-		if Revision=0
-		lea	(v_16x16).w,a1
-		add.w	4(a3),d4	; Add camera Y coordinate to relative coordinate
-		add.w	(a3),d5		; Add camera X coordinate to relative coordinate
-		else
-			add.w	(a3),d5
+		add.w	(a3),d5
 	GetBlockData_2:
-			add.w	4(a3),d4
-			lea	(v_16x16).w,a1
-		endc
+		add.w	4(a3),d4
+		movea.l	(v_16x16).l,a1
 		; Turn Y coordinate into index into level layout
 		move.w	d4,d3
 		lsr.w	#1,d3
@@ -4855,7 +4830,7 @@ GetBlockData:
 		andi.w	#$7F,d0
 		; Get chunk from level layout
 		add.w	d3,d0
-		moveq	#-1,d3
+		moveq	#0,d3
 		move.b	(a4,d0.w),d3
 		beq.s	locret_6C1E	; If chunk 00, just return a pointer to the first block (expected to be empty)
 		; Turn chunk ID into index into chunk table
@@ -4870,6 +4845,7 @@ GetBlockData:
 		; Get block metadata from chunk
 		add.w	d4,d3
 		add.w	d5,d3
+		add.l	(v_256x256).l,d3
 		movea.l	d3,a0
 		move.w	(a0),d3
 		; Turn block ID into address
@@ -5078,13 +5054,9 @@ LevelDataLoad:
 		lea	(a2,d0.w),a2
 		move.l	a2,-(sp)
 		addq.l	#4,a2
-		movea.l	(a2)+,a0
-		lea	(v_16x16).w,a1	; RAM address for 16x16 mappings
-		move.w	#0,d0
-		bsr.w	EniDec
-		movea.l	(a2)+,a0
-		lea	(v_256x256).l,a1 ; RAM address for 256x256 mappings
-		bsr.w	KosDec
+		move.l	(a2)+,(v_16x16).l	; store the ROM address for the block mappings
+		andi.l	#$FFFFFF,(v_16x16).l
+		move.l	(a2)+,(v_256x256).l
 		bsr.w	LevelLayoutLoad
 		move.w	(a2)+,d0
 		move.w	(a2),d0
@@ -8283,19 +8255,12 @@ Art_LivesNums:	incbin	"artunc\Lives Counter Numbers.bin" ; 8x8 pixel numbers on 
 		include	"_inc\Pattern Load Cues.asm"
 
 		align	$200,$FF
-		if Revision=0
-Nem_SegaLogo:	incbin	"artnem\Sega Logo.bin"	; large Sega logo
+		dcb.b	$300,$FF
+Nem_SegaLogo:	incbin	"artnem\Sega Logo (JP1).bin" ; large Sega logo
 		even
-Eni_SegaLogo:	incbin	"tilemaps\Sega Logo.bin" ; large Sega logo (mappings)
+Eni_SegaLogo:	incbin	"tilemaps\Sega Logo (JP1).unc" ; large Sega logo (mappings)
 		even
-		else
-			dcb.b	$300,$FF
-	Nem_SegaLogo:	incbin	"artnem\Sega Logo (JP1).bin" ; large Sega logo
-			even
-	Eni_SegaLogo:	incbin	"tilemaps\Sega Logo (JP1).bin" ; large Sega logo (mappings)
-			even
-		endc
-Eni_Title:	incbin	"tilemaps\Title Screen.bin" ; title screen foreground (mappings)
+Eni_Title:	incbin	"tilemaps\Title Screen.unc" ; title screen foreground (mappings)
 		even
 Nem_TitleFg:	incbin	"artnem\Title Screen Foreground.bin"
 		even
@@ -8620,50 +8585,50 @@ Nem_Squirrel:	incbin	"artnem\Animal Squirrel.bin"
 ; ---------------------------------------------------------------------------
 ; Compressed graphics - primary patterns and block mappings
 ; ---------------------------------------------------------------------------
-Blk16_GHZ:	incbin	"map16\GHZ.bin"
+Blk16_GHZ:	incbin	"map16_u\GHZ.bin"
 		even
 Nem_GHZ_1st:	incbin	"artnem\8x8 - GHZ1.bin"	; GHZ primary patterns
 		even
 Nem_GHZ_2nd:	incbin	"artnem\8x8 - GHZ2.bin"	; GHZ secondary patterns
 		even
-Blk256_GHZ:	incbin	"map256\GHZ.bin"
+Blk256_GHZ:	incbin	"map256_u\GHZ.bin"
 		even
-Blk16_LZ:	incbin	"map16\LZ.bin"
+Blk16_LZ:	incbin	"map16_u\LZ.bin"
 		even
 Nem_LZ:		incbin	"artnem\8x8 - LZ.bin"	; LZ primary patterns
 		even
-Blk256_LZ:	incbin	"map256\LZ.bin"
+Blk256_LZ:	incbin	"map256_u\LZ.bin"
 		even
-Blk16_MZ:	incbin	"map16\MZ.bin"
+Blk16_MZ:	incbin	"map16_u\MZ.bin"
 		even
 Nem_MZ:		incbin	"artnem\8x8 - MZ.bin"	; MZ primary patterns
 		even
 Blk256_MZ:	if Revision=0
-		incbin	"map256\MZ.bin"
+		incbin	"map256_u\MZ.bin"
 		else
-		incbin	"map256\MZ (JP1).bin"
+		incbin	"map256_u\MZ (JP1).bin"
 		endc
 		even
-Blk16_SLZ:	incbin	"map16\SLZ.bin"
+Blk16_SLZ:	incbin	"map16_u\SLZ.bin"
 		even
 Nem_SLZ:	incbin	"artnem\8x8 - SLZ.bin"	; SLZ primary patterns
 		even
-Blk256_SLZ:	incbin	"map256\SLZ.bin"
+Blk256_SLZ:	incbin	"map256_u\SLZ.bin"
 		even
-Blk16_SYZ:	incbin	"map16\SYZ.bin"
+Blk16_SYZ:	incbin	"map16_u\SYZ.bin"
 		even
 Nem_SYZ:	incbin	"artnem\8x8 - SYZ.bin"	; SYZ primary patterns
 		even
-Blk256_SYZ:	incbin	"map256\SYZ.bin"
+Blk256_SYZ:	incbin	"map256_u\SYZ.bin"
 		even
-Blk16_SBZ:	incbin	"map16\SBZ.bin"
+Blk16_SBZ:	incbin	"map16_u\SBZ.bin"
 		even
 Nem_SBZ:	incbin	"artnem\8x8 - SBZ.bin"	; SBZ primary patterns
 		even
 Blk256_SBZ:	if Revision=0
-		incbin	"map256\SBZ.bin"
+		incbin	"map256_u\SBZ.bin"
 		else
-		incbin	"map256\SBZ (JP1).bin"
+		incbin	"map256_u\SBZ (JP1).bin"
 		endc
 		even
 ; ---------------------------------------------------------------------------
