@@ -313,3 +313,19 @@ SoundCF:	include	"sound/sfx/SndCF - Signpost.asm"
 		even
 SoundD0:	include	"sound/sfx/SndD0 - Waterfall.asm"
 		even
+
+	include "MegaPCM.asm"
+
+; ---------------------------------------------------------------
+; DAC Samples Files
+; ---------------------------------------------------------------
+
+	IncludeDAC	kick, wav
+	IncludeDAC	snare, wav
+	IncludeDAC	timpani, wav
+	IncludeDAC	timpanih, wav
+	IncludeDAC	timpanim, wav
+	IncludeDAC	timpaniml, wav
+	IncludeDAC	timpanil, wav
+	IncludeDAC	sega, wav
+	even
