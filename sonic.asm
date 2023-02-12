@@ -2413,7 +2413,6 @@ LevSelTextLoad:
 LevSel_DrawSnd:
 		locVRAM	$EC3C		; sound test position on screen
 		move.w	(v_levselsound).w,d0
-		;addi.w	#$80,d0
 		move.b	d0,d2
 		lsr.b	#4,d0
 		bsr.w	LevSel_ChgSnd	; draw 1st digit
