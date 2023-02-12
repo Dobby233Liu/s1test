@@ -57,7 +57,7 @@ MegaPCM:
 
 	DAC_Entry	$05, kick, pcm			; $81	- Kick
 	DAC_Entry	$05, snare, pcm			; $82	- Snare
-	DAC_Entry	$08, timpani, pcm		; $83	- Timpani
+	;DAC_Entry	$08, timpani, pcm		; $83	- Timpani
 	DAC_Entry	$02, timpani, pcm		; $84	- Hi-Timpani
 	DAC_Entry	$04, timpani, pcm		; $85	- Mid-Timpani
 	DAC_Entry	$06, timpani, pcm		; $86	- Mid-Low-Timpani
