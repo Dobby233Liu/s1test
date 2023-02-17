@@ -2019,7 +2019,7 @@ GM_Title:
 
 		lea	(v_objspace+$40).w,a1
 		moveq	#0,d0
-		move.w	#($40*4)/4-1,d1
+		move.w	#($40*3)/4-1,d1
 	Tit_ClrObj2:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj2
@@ -2046,14 +2046,12 @@ GM_Title:
 		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
 		bsr.w	DeformLayers
 
-		move.b	#id_TitleSonic,(v_objspace+$40).w ; load big Sonic object
-		move.b	#id_PSBTM,(v_objspace+($40*2)).w ; load object which hides part of Sonic
-		move.b	#2,(v_objspace+($40*2)+obFrame).w
-		move.b	#id_PSBTM,(v_objspace+($40*3)).w ; load "PRESS START BUTTON" object
+		move.b	#id_PSBTM,(v_objspace+($40*1)).w ; load "PRESS START BUTTON" object
 		tst.b   (v_megadrive).w	; is console Japanese?
 		bpl.s   @isjap		; if yes, branch
-		move.b	#id_PSBTM,(v_objspace+($40*4)).w ; load "TM" object
-		move.b	#3,(v_objspace+($40*4)+obFrame).w
+		move.b	#id_PSBTM,(v_objspace+($40*2)).w ; load "TM" object
+		move.b	#$01,(v_objspace+($40*2)+obFrame).w
+		move.b	#id_TitleSonic,(v_objspace+($40*3)).w ; load big Sonic object
 
 	@isjap:
 		moveq	#palid_Title,d0	; load title screen palette

@@ -19,12 +19,12 @@ PSB_Main:	; Routine 0
 		move.w	#$130,obScreenY(a0)
 		move.l	#Map_PSB,obMap(a0)
 		move.w	#$200,obGfx(a0)
-		cmpi.b	#2,obFrame(a0)	; is object "PRESS START"?
-		blo.s	PSB_PrsStart	; if yes, branch
+		cmpi.b	#0,obFrame(a0)	; is object "PRESS START BUTTON"?
+		beq.s	PSB_PrsStart	; if yes, branch
 
 		addq.b	#2,obRoutine(a0)
 
-		cmpi.b	#3,obFrame(a0)	; is the object	"TM"?
+		cmpi.b	#2,obFrame(a0)	; is the object	"TM"?
 		bne.s	PSB_Exit	; if not, branch
 		; "TM" specific code
 		move.w	#$2510,obGfx(a0)
