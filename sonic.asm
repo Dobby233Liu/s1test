@@ -1989,7 +1989,7 @@ GM_Title:
 		lea	(Nem_CreditText).l,a0 ;	load alphabet
 		bsr.w	NemDec
 		move.w	#$A,(v_creditsnum).w	; display "SONIC TEAM PRESENTS"
-		move.b	#id_CreditsText,(v_objspace+$80).w ; load "SONIC TEAM PRESENTS" object
+		move.b	#id_CreditsText,(v_objspace+$40).w ; load "SONIC TEAM PRESENTS" object
 		jsr	(ExecuteObjects).l
 		jsr	(BuildSprites).l
 
@@ -2014,28 +2014,29 @@ GM_Title:
 		move.w	(a5)+,(a6)
 		dbf	d1,Tit_LoadText	; load level select font
 
+		bsr.w	PaletteFadeOut
+		bsr.w	ClearScreen
+
 		lea	(v_objspace+$40).w,a1
 		moveq	#0,d0
-		move.w	#($2000-$40)/4-1,d1
+		move.w	#($40*4)/4-1,d1
 	Tit_ClrObj2:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj2
 
-		bsr.w	PaletteFadeOut
-		bsr.w	ClearScreen
 		clr.w	(v_creditsnum).w
 
 		disable_ints
 		moveq	#plcid_Main,d0
 		bsr.w	NewPLC
-		locVRAM	0
 		move.w	#(id_GHZ<<8),(v_zone).w		; set level to GHZ (00)
 		move.l	#Blk16_GHZ,(v_16x16).l		; use GHZ 16x mappings
 		move.l	#Blk256_GHZ,(v_256x256).l	; use GHZ 256x mappings
-		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
-		bsr.w	NemDec
 		bsr.w	LevelSizeLoad
 		bsr.w	LevelLayoutLoad
+		locVRAM	0
+		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
+		bsr.w	NemDec
 		lea	(vdp_control_port).l,a5
 		lea	(vdp_data_port).l,a6
 		lea	(v_bgscreenposx).w,a3
@@ -2045,9 +2046,6 @@ GM_Title:
 		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
 		bsr.w	DeformLayers
 
-		moveq	#palid_Title,d0	; load title screen palette
-		bsr.w	PalLoad1
-		sfx	bgm_Title	; play title screen music
 		move.b	#id_TitleSonic,(v_objspace+$40).w ; load big Sonic object
 		move.b	#id_PSBTM,(v_objspace+($40*2)).w ; load object which hides part of Sonic
 		move.b	#2,(v_objspace+($40*2)+obFrame).w
@@ -2058,14 +2056,21 @@ GM_Title:
 		move.b	#3,(v_objspace+($40*4)+obFrame).w
 
 	@isjap:
+		moveq	#palid_Title,d0	; load title screen palette
+		bsr.w	PalLoad1
+		bsr.w	PaletteFadeIn
+
+		sfx	bgm_Title	; play title screen music
+
 		move.w	(v_vdp_buffer1).w,d0
 		ori.b	#$40,d0
 		move.w	d0,(vdp_control_port).l
-		bsr.w	PaletteFadeIn
+
 		jsr	(ExecuteObjects).l
 		bsr.w	DeformLayers
 		jsr	(BuildSprites).l
 		bsr.w	RunPLC
+		bsr.w	PCycle_Title
 
 Tit_MainLoop:
 		move.b	#4,(v_vbla_routine).w
