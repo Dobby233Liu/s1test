@@ -7,11 +7,11 @@
 
 ; ===========================================================================
 
-		;opt	l@					; @ is the local label symbol
-		;opt	ae-					; automatic evens are disabled by default
-		;opt	ws+					; allow statements to contain white-spaces
+		opt	l@					; @ is the local label symbol
+		opt	ae-					; automatic evens are disabled by default
+		opt	ws+					; allow statements to contain white-spaces
 		opt	w+					; print warnings
-		;opt	m+					; do not expand macros - if enabled, this can break assembling
+		opt	m+					; do not expand macros - if enabled, this can break assembling
 
 	include	"Constants.asm"
 	include	"Variables.asm"
@@ -99,7 +99,7 @@ Vectors:	dc.l v_systemstack&$FFFFFF	; Initial stack pointer value
 		dc.l ErrorTrap			; Unused (reserved)
 		dc.l ErrorTrap			; Unused (reserved)
 Console:	dc.b "SEGA MEGA DRIVE " ; Hardware system ID (Console name)
-Date:		dc.b "(C)SEGA 2020.JUN" ; Copyright holder and release date (generally year)
+Date:		dc.b "(C)SEGA 2023.FEB" ; Copyright holder and release date (generally year)
 Title_Local:dc.b "SONIC THE HEDGEHOG                              " ; Domestic name
 Title_Int:	dc.b "SONIC THE HEDGEHOG                              " ; International name
 Serial:		if Revision=0
@@ -120,7 +120,7 @@ SRAMSupport:	if EnableSRAM=1
 		endc
 		dc.l $20202020		; SRAM start ($200001)
 		dc.l $20202020		; SRAM end ($20xxxx)
-Notes:		dc.b "D2L C HACK                                          " ; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
+Notes:		dc.b "                                                    " ; Notes (unused, anything can be put in this space, but it has to be 52 bytes.)
 Region:		dc.b "JUE             " ; Region (Country code)
 EndOfHeader:
 
@@ -251,6 +251,7 @@ EntryPoint:
 
 		bsr.w	SoundDriverLoad				; load the DAC Driver
 
+		move.w	#bgm__First,(v_levselsound).w
 		move.b	#id_Sega,(v_gamemode).w			; set Game Mode to Sega Screen
 		bra.s	MainGameLoop				; continue to main program
 
@@ -921,13 +922,8 @@ ClearScreen:
 		bne.s	@wait2
 
 		move.w	#$8F02,(a5)
-		if Revision=0
-		move.l	#0,(v_scrposy_dup).w
-		move.l	#0,(v_scrposx_dup).w
-		else
 		clr.l	(v_scrposy_dup).w
 		clr.l	(v_scrposx_dup).w
-		endc
 
 		lea	(v_spritetablebuffer).w,a1
 		moveq	#0,d0
@@ -1927,6 +1923,8 @@ GM_Sega:
 		move.w	d0,(vdp_control_port).l
 
 Sega_WaitPal:
+		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
+		bne.s	Sega_GotoTitle	; if yes, branch
 		move.b	#2,(v_vbla_routine).w
 		bsr.w	WaitForVBla
 		bsr.w	PalCycle_Sega
@@ -1957,10 +1955,21 @@ Sega_GotoTitle:
 
 GM_Title:
 		sfx	bgm_Stop	; stop music
-		move.w	#bgm__First,(v_levselsound).w
+		bsr.w	PaletteFadeOut
+
+		clr.w	(f_demo).w	; disable demo mode
+		clr.b	(v_lastlamp).w ; clear lamppost counter
+		clr.b	(f_debugmode).w ; disable debug mode
+		clr.w	(v_debuguse).w ; disable debug item placement mode
+		clr.w	(v_pcyc_time).w ; reset palette cycling timer
+		clr.b 	(f_nobgscroll).w ; IsoKilo fix
+		clr.b	(f_wtr_state).w
+		move.w	#$200,(v_demolength).w ; run title screen for $200 frames
+		move.w	#0,(v_title_dcount).w
+		move.w	#0,(v_title_ccount).w
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
-		bsr.w	PaletteFadeOut
+
 		disable_ints
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; 8-colour mode
@@ -1970,19 +1979,13 @@ GM_Title:
 		move.w	#$9200,(a6)	; window vertical position
 		move.w	#$8B03,(a6)
 		move.w	#$8720,(a6)	; set background colour (palette line 2, entry 0)
-		clr.b	(f_wtr_state).w
 
 		lea	(v_objspace).w,a1
 		moveq	#0,d0
 		move.w	#$7FF,d1
-
 	Tit_ClrObj1:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj1	; fill object space ($D000-$EFFF) with 0
-
-		locVRAM	$14C0
-		lea	(Nem_CreditText).l,a0 ;	load alphabet
-		bsr.w	NemDec
 
 		copyTilemap	$FF0000,$C000,$27,$1B
 
@@ -1994,13 +1997,18 @@ GM_Title:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrPal	; fill palette with 0 (black)
 
-		bsr.w	ClearScreen
 		moveq	#palid_Sonic,d0	; load Sonic's palette
 		bsr.w	PalLoad1
+		locVRAM	$B400
+		lea	(Nem_CreditText).l,a0 ;	load alphabet
+		bsr.w	NemDec
+		move.w	#$A,(v_creditsnum).w	; display "SONIC TEAM PRESENTS"
 		move.b	#id_CreditsText,(v_objspace+$80).w ; load "SONIC TEAM PRESENTS" object
 		jsr	(ExecuteObjects).l
 		jsr	(BuildSprites).l
+
 		bsr.w	PaletteFadeIn
+
 		disable_ints
 		locVRAM	$4000
 		lea	(Nem_TitleFg).l,a0 ; load title	screen patterns
@@ -2011,50 +2019,42 @@ GM_Title:
 		locVRAM	$A200
 		lea	(Nem_TitleTM).l,a0 ; load "TM" patterns
 		bsr.w	NemDec
+
 		lea	(vdp_data_port).l,a6
 		locVRAM	$D000,4(a6)
-		lea	(Art_Text).l,a5	; load level select font
+		lea	(Art_Text).l,a5
 		move.w	#$28F,d1
-
 	Tit_LoadText:
 		move.w	(a5)+,(a6)
 		dbf	d1,Tit_LoadText	; load level select font
 
-		move.b	#0,(v_lastlamp).w ; clear lamppost counter
-		move.w	#0,(v_debuguse).w ; disable debug item placement mode
-		move.w	#0,(f_demo).w	; disable demo mode
+		bsr.w	PaletteFadeOut
+		bsr.w	ClearScreen
+		clr.w	(v_creditsnum).w
+
+		disable_ints
+		locVRAM	0
 		move.w	#(id_GHZ<<8),(v_zone).w	; set level to GHZ (00)
-		move.w	#0,(v_pcyc_time).w ; disable palette cycling
-		clr.b 	(f_nobgscroll).w ; IsoKilo fix
-		bsr.w	LevelSizeLoad
-		bsr.w	DeformLayers
 		move.l	#Blk16_GHZ,(v_16x16).l		; use GHZ 16x mappings
 		move.l	#Blk256_GHZ,(v_256x256).l	; use GHZ 256x mappings
+		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
+		bsr.w	NemDec
+		bsr.w	LevelSizeLoad
+		bsr.w	DeformLayers
 		bsr.w	LevelLayoutLoad
-		bsr.w	PaletteFadeOut
-		disable_ints
-		bsr.w	ClearScreen
+		moveq	#plcid_Main,d0
+		bsr.w	NewPLC
 		lea	(vdp_control_port).l,a5
 		lea	(vdp_data_port).l,a6
 		lea	(v_bgscreenposx).w,a3
 		lea	(v_lvllayout+$40).w,a4
 		move.w	#$6000,d2
 		bsr.w	DrawChunks
-
 		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
 
-		locVRAM	0
-		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
-		bsr.w	NemDec
-		moveq	#palid_Title,d0	; load title screen palette
-		bsr.w	PalLoad1
-		sfx	bgm_Title	; play title screen music
-		move.b	#0,(f_debugmode).w ; disable debug mode
-		move.w	#$200,(v_demolength).w ; run title screen for $200 frames
-		lea	(v_objspace+$80).w,a1
+		lea	(v_objspace+$40).w,a1
 		moveq	#0,d0
-		move.w	#$F,d1	; ($40 / 4) - 1
-
+		move.w	#($2000-$40)/4-1,d1
 	Tit_ClrObj2:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj2
@@ -2063,19 +2063,18 @@ GM_Title:
 		move.b	#id_PSBTM,(v_objspace+$80).w ; load object which hides part of Sonic
 		move.b	#2,(v_objspace+$80+obFrame).w
 		move.b	#id_PSBTM,(v_objspace+$C0).w ; load "PRESS START BUTTON" object
-
 		tst.b   (v_megadrive).w	; is console Japanese?
 		bpl.s   @isjap		; if yes, branch
 		move.b	#id_PSBTM,(v_objspace+$100).w ; load "TM" object
 		move.b	#3,(v_objspace+$100+obFrame).w
+
 	@isjap:
+		moveq	#palid_Title,d0	; load title screen palette
+		bsr.w	PalLoad1
+		sfx	bgm_Title	; play title screen music
 		jsr	(ExecuteObjects).l
 		bsr.w	DeformLayers
 		jsr	(BuildSprites).l
-		moveq	#plcid_Main,d0
-		bsr.w	NewPLC
-		move.w	#0,(v_title_dcount).w
-		move.w	#0,(v_title_ccount).w
 		move.w	(v_vdp_buffer1).w,d0
 		ori.b	#$40,d0
 		move.w	d0,(vdp_control_port).l
@@ -2092,11 +2091,7 @@ Tit_MainLoop:
 		move.w	(v_objspace+obX).w,d0
 		addq.w	#2,d0
 		move.w	d0,(v_objspace+obX).w ; move Sonic to the right
-		cmpi.w	#$1C00,d0	; has Sonic object passed $1C00 on x-axis?
-		blo.s	Tit_EnterCheat	; if not, branch
 
-		move.b	#id_Sega,(v_gamemode).w ; go to Sega screen
-		rts	
 ; ===========================================================================
 
 Tit_EnterCheat:
@@ -3752,9 +3747,9 @@ End_MainLoop:
 		cmpi.b	#id_Ending,(v_gamemode).w ; is game mode $18 (ending)?
 		beq.s	End_ChkEmerald	; if yes, branch
 
-		move.b	#id_Credits,(v_gamemode).w ; goto credits
 		sfx	bgm_Credits ; play credits music
 		move.w	#0,(v_creditsnum).w ; set credits index number to 0
+		move.b	#id_Credits,(v_gamemode).w ; goto credits
 		rts	
 ; ===========================================================================
 

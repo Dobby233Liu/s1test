@@ -16,7 +16,7 @@ NemDec:
 	lea	NemDec_WriteRowToVDP(pc),a3
 
 NemDec_Main:
-	lea	$FFFFAA00,a1		; load Nemesis decompression buffer
+	lea	(v_ngfx_buffer).l,a1		; load Nemesis decompression buffer
 	move.w	(a0)+,d2		; get number of patterns
 	bpl.s	@0			; are we in Mode 0?
 	lea	$A(a3),a3		; if not, use Mode 1
