@@ -462,8 +462,8 @@ ShowErrorMessage:
 		move.b	(v_errortype).w,d0 ; load error code
 		move.w	ErrorText(pc,d0.w),d0
 		lea	ErrorText(pc,d0.w),a0
-		locVRAM	(vram_fg+$604)
-		moveq	#$13-1,d1		; number of characters (minus 1)
+		locVRAM	(vram_fg+$600)
+		moveq	#$14-1,d1		; number of characters (minus 1)
 
 	@showchars:
 		moveq	#0,d0
@@ -481,17 +481,18 @@ ErrorText:	dc.w @exception-ErrorText, @bus-ErrorText
 		dc.w @trapi-ErrorText, @privilege-ErrorText
 		dc.w @trace-ErrorText, @line1010-ErrorText
 		dc.w @line1111-ErrorText
-@exception:	 dc.b "EXCEPTION          "
-@bus:		 dc.b "BUS ERROR          "
-@address:	                 dc.b "ADDRESS ERROR  "
-@illinstruct:               dc.b "ILLEGAL INSTRCT "
-@zerodivide:             dc.b "DIVIDE BY @ERO "
-@chkinstruct:            dc.b "INSTRUCT CHK    "
-@trapi:		 dc.b "TRAP INSTRUCT  "
-@privilege:	 dc.b "PRIVILEGE VIOLA"
-@trace:		 dc.b "TRACED ERROR  "
-@line1010:	 dc.b "LINE 1010 EMUL"
-@line1111:	 dc.b "LINE 1111 EMUL"
+; Must be 20 characters
+@exception:		dc.b "EXCEPTION           "
+@bus:			dc.b "BUS ERROR           "
+@address:		dc.b "ADDRESS ERROR       "
+@illinstruct:	dc.b "ILLEGAL INSTRCTION  "
+@zerodivide:	dc.b "DIVIDE BY @ERO      "
+@chkinstruct:	dc.b "INSTRUCT CHK        "
+@trapi:			dc.b "TRAP INSTRUCTION    "
+@privilege:		dc.b "PRIVILEGE VIOLAT.   "
+@trace:			dc.b "TRACED ERROR        "
+@line1010:		dc.b "LINE 1010 EMULATOR  "
+@line1111:		dc.b "LINE 1111 EMULATOR  "
 		even
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
@@ -506,11 +507,6 @@ ShowErrorValue:
 		bsr.s	@shownumber	; display 8 numbers
 		dbf	d2,@loop
 		rts	
-; End of function ShowErrorValue
-
-
-; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
 
 @shownumber:
 		move.w	d0,d1
@@ -523,7 +519,7 @@ ShowErrorValue:
 		addi.w	#$7C0,d1
 		move.w	d1,(a6)
 		rts	
-; End of function sub_5CA
+; End of function ShowErrorValue
 
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
