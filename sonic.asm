@@ -489,7 +489,7 @@ ErrorText:	dc.w @exception-ErrorText, @bus-ErrorText
 @zerodivide:	dc.b "DIVIDE BY @ERO      "
 @chkinstruct:	dc.b "INSTRUCT CHK        "
 @trapi:			dc.b "TRAP INSTRUCTION    "
-@privilege:		dc.b "PRIVILEGE VIOLAT.   "
+@privilege:		dc.b "PRIVILEGE VIOLATION "
 @trace:			dc.b "TRACED ERROR        "
 @line1010:		dc.b "LINE 1010 EMULATOR  "
 @line1111:		dc.b "LINE 1111 EMULATOR  "
@@ -520,7 +520,6 @@ ShowErrorValue:
 		move.w	d1,(a6)
 		rts	
 ; End of function ShowErrorValue
-
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
