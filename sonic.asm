@@ -7,15 +7,17 @@
 
 ; ===========================================================================
 
-		opt	l@					; @ is the local label symbol
-		opt	ae-					; automatic evens are disabled by default
-		opt	ws+					; allow statements to contain white-spaces
-		opt	w+					; print warnings
-		opt	m+					; do not expand macros - if enabled, this can break assembling
+	opt	l@					; @ is the local label symbol
+	opt	ae-					; automatic evens are disabled by default
+	opt	ws+					; allow statements to contain white-spaces
+	opt	w+					; print warnings
+	opt	m+					; do not expand macros - if enabled, this can break assembling
+
+	include	"Macros - More CPUs.asm"
+	cpu	68000
 
 	include	"Constants.asm"
 	include	"Variables.asm"
-	include	"Macros - More CPUs.asm"
 	include	"Macros.asm"
 
 EnableSRAM:		equ 1	; change to 1 to enable SRAM
@@ -28,8 +30,6 @@ AddressSRAM:	equ 3	; 0 = odd+even; 2 = even only; 3 = odd only
 Revision:	equ 2 ; consider: 1 for reality and 2 for virutal.
 
 ZoneCount:	equ 6	; discrete zones are: GHZ, MZ, SYZ, LZ, SLZ, and SBZ
-
-		cpu	68000
 
 ; ===========================================================================
 
@@ -249,11 +249,16 @@ EntryPoint:
 
 		movem.l	-4(sp),d0-a6				; clear all registers
 
-		bsr.w	SoundDriverLoad				; load the DAC Driver
+		bsr.w	SoundDriverLoad				; load the DAC driver
 
 		move.w	#bgm__First,(v_levselsound).w
+
 		move.b	#id_Sega,(v_gamemode).w			; set Game Mode to Sega Screen
-		bra.s	MainGameLoop				; continue to main program
+MainGameLoop:
+		move.b	(v_gamemode).w,d0 ; load Game Mode
+		andi.w	#$7C,d0	; limit Game Mode value to $1C max (change to a maximum of 7C to add more game modes)
+		jsr	GameModeArray(pc,d0.w) ; jump to apt location in ROM
+		bra.s	MainGameLoop	; loop indefinitely
 
 SetupValues:
 		dc.w	$2700					; disable interrupts
@@ -338,37 +343,23 @@ SetupValues:
 		cpu 68000
    Z80_Startup_end:
 
-		dc.b	$9F,$BF,$DF,$FF				; PSG mute values (PSG 1 to 4) 
-; ===========================================================================
-MainGameLoop:
-		move.b	(v_gamemode).w,d0 ; load Game Mode
-		andi.w	#$1C,d0	; limit Game Mode value to $1C max (change to a maximum of 7C to add more game modes)
-		jsr	GameModeArray(pc,d0.w) ; jump to apt location in ROM
-		bra.s	MainGameLoop	; loop indefinitely
+		dc.b	$9F,$BF,$DF,$FF				; PSG mute values (PSG 1 to 4)
+
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Main game mode array
 ; ---------------------------------------------------------------------------
 
 GameModeArray:
-
 ptr_GM_Sega:	bra.w	GM_Sega		; Sega Screen ($00)
-
 ptr_GM_Title:	bra.w	GM_Title	; Title	Screen ($04)
-
 ptr_GM_Demo:	bra.w	GM_Level	; Demo Mode ($08)
-
 ptr_GM_Level:	bra.w	GM_Level	; Normal Level ($0C)
-
 ptr_GM_Special:	bra.w	GM_Special	; Special Stage	($10)
-
 ptr_GM_Cont:	bra.w	GM_Continue	; Continue Screen ($14)
-
 ptr_GM_Ending:	bra.w	GM_Ending	; End of game sequence ($18)
-
 ptr_GM_Credits:	bra.w	GM_Credits	; Credits ($1C)
-
-		rts	
+	even
 ; ===========================================================================
 
 BusError:
@@ -2023,30 +2014,6 @@ GM_Title:
 		move.w	(a5)+,(a6)
 		dbf	d1,Tit_LoadText	; load level select font
 
-		bsr.w	PaletteFadeOut
-		bsr.w	ClearScreen
-		clr.w	(v_creditsnum).w
-
-		disable_ints
-		locVRAM	0
-		move.w	#(id_GHZ<<8),(v_zone).w	; set level to GHZ (00)
-		move.l	#Blk16_GHZ,(v_16x16).l		; use GHZ 16x mappings
-		move.l	#Blk256_GHZ,(v_256x256).l	; use GHZ 256x mappings
-		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
-		bsr.w	NemDec
-		bsr.w	LevelSizeLoad
-		bsr.w	DeformLayers
-		bsr.w	LevelLayoutLoad
-		moveq	#plcid_Main,d0
-		bsr.w	NewPLC
-		lea	(vdp_control_port).l,a5
-		lea	(vdp_data_port).l,a6
-		lea	(v_bgscreenposx).w,a3
-		lea	(v_lvllayout+$40).w,a4
-		move.w	#$6000,d2
-		bsr.w	DrawChunks
-		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
-
 		lea	(v_objspace+$40).w,a1
 		moveq	#0,d0
 		move.w	#($2000-$40)/4-1,d1
@@ -2054,38 +2021,63 @@ GM_Title:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj2
 
-		move.b	#id_TitleSonic,(v_objspace+$40).w ; load big Sonic object
-		move.b	#id_PSBTM,(v_objspace+$80).w ; load object which hides part of Sonic
-		move.b	#2,(v_objspace+$80+obFrame).w
-		move.b	#id_PSBTM,(v_objspace+$C0).w ; load "PRESS START BUTTON" object
-		tst.b   (v_megadrive).w	; is console Japanese?
-		bpl.s   @isjap		; if yes, branch
-		move.b	#id_PSBTM,(v_objspace+$100).w ; load "TM" object
-		move.b	#3,(v_objspace+$100+obFrame).w
+		bsr.w	PaletteFadeOut
+		bsr.w	ClearScreen
+		clr.w	(v_creditsnum).w
 
-	@isjap:
+		disable_ints
+		moveq	#plcid_Main,d0
+		bsr.w	NewPLC
+		locVRAM	0
+		move.w	#(id_GHZ<<8),(v_zone).w		; set level to GHZ (00)
+		move.l	#Blk16_GHZ,(v_16x16).l		; use GHZ 16x mappings
+		move.l	#Blk256_GHZ,(v_256x256).l	; use GHZ 256x mappings
+		lea	(Nem_GHZ_1st).l,a0 ; load GHZ patterns
+		bsr.w	NemDec
+		bsr.w	LevelSizeLoad
+		bsr.w	LevelLayoutLoad
+		lea	(vdp_control_port).l,a5
+		lea	(vdp_data_port).l,a6
+		lea	(v_bgscreenposx).w,a3
+		lea	(v_lvllayout+$40).w,a4
+		move.w	#$6000,d2
+		bsr.w	DrawChunks
+		copyTilemap	Eni_Title,$C208,$21,$15 ; KoH Center
+		bsr.w	DeformLayers
+
 		moveq	#palid_Title,d0	; load title screen palette
 		bsr.w	PalLoad1
 		sfx	bgm_Title	; play title screen music
-		jsr	(ExecuteObjects).l
-		bsr.w	DeformLayers
-		jsr	(BuildSprites).l
+		move.b	#id_TitleSonic,(v_objspace+$40).w ; load big Sonic object
+		move.b	#id_PSBTM,(v_objspace+($40*2)).w ; load object which hides part of Sonic
+		move.b	#2,(v_objspace+($40*2)+obFrame).w
+		move.b	#id_PSBTM,(v_objspace+($40*3)).w ; load "PRESS START BUTTON" object
+		tst.b   (v_megadrive).w	; is console Japanese?
+		bpl.s   @isjap		; if yes, branch
+		move.b	#id_PSBTM,(v_objspace+($40*4)).w ; load "TM" object
+		move.b	#3,(v_objspace+($40*4)+obFrame).w
+
+	@isjap:
 		move.w	(v_vdp_buffer1).w,d0
 		ori.b	#$40,d0
 		move.w	d0,(vdp_control_port).l
 		bsr.w	PaletteFadeIn
+		jsr	(ExecuteObjects).l
+		bsr.w	DeformLayers
+		jsr	(BuildSprites).l
+		bsr.w	RunPLC
 
 Tit_MainLoop:
 		move.b	#4,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		jsr	(ExecuteObjects).l
-		bsr.w	DeformLayers
-		jsr	(BuildSprites).l
-		bsr.w	PCycle_Title
-		bsr.w	RunPLC
 		move.w	(v_objspace+obX).w,d0
 		addq.w	#2,d0
 		move.w	d0,(v_objspace+obX).w ; move Sonic to the right
+		jsr	(ExecuteObjects).l
+		bsr.w	DeformLayers
+		jsr	(BuildSprites).l
+		bsr.w	RunPLC
+		bsr.w	PCycle_Title
 
 ; ===========================================================================
 
@@ -2165,12 +2157,10 @@ Tit_ChkLevSel:
 		move.l	d0,(a6)
 		dbf	d1,Tit_ClrScroll2 ; clear scroll data (in VRAM)
 		move.b  #bgm_SS,d0
-		jsr PlaySound
+		jsr		PlaySound
 		bsr.w	LevSelTextLoad
-
-; ---------------------------------------------------------------------------
-; Level	Select
-; ---------------------------------------------------------------------------
+		bra.s	LevelSelect
+; Fall-through
 
 ; ---------------------------------------------------------------------------
 ; Level pointers
@@ -2201,9 +2191,13 @@ LevSel_Ptrs:
 		dc.b id_SBZ, 1
 		dc.b id_LZ, 3
 		dc.b id_SBZ, 2
-		dc.b id_SS, 0		; Special Stage
+		dc.b id_SS, 0	; Special Stage
 		dc.w $8000		; Sound Test
 		even
+
+; ---------------------------------------------------------------------------
+; Level	Select
+; ---------------------------------------------------------------------------
 
 LevelSelect:
 		move.b	#2,(v_vbla_routine).w
@@ -2278,7 +2272,6 @@ PlayLevel:
 ; ---------------------------------------------------------------------------
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
-
 
 LevSelControls:
 		move.b	(v_jpadpress1).w,d1
@@ -2398,7 +2391,6 @@ LevSel_DrawSnd:
 		rts	
 ; End of function LevSelTextLoad
 
-
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
 
@@ -2413,7 +2405,6 @@ LevSel_ChgSnd:
 		move.w	d0,(a6)
 		rts	
 ; End of function LevSel_ChgSnd
-
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
