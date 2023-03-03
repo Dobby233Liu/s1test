@@ -47,6 +47,10 @@ Over_Move:	; Routine 2
 
 Over_SetWait:
 		move.w	#720,obTimeFrame(a0) ; set time delay to 12 seconds
+		tst.b	(f_timeover).w	; is time over flag set?
+		beq.s	@cont	; if no, branch
+		move.w	#90,obTimeFrame(a0) ; set time delay to 1.5 second
+@cont:
 		addq.b	#2,obRoutine(a0)
 		bra.w   DisplaySprite
 ; ===========================================================================

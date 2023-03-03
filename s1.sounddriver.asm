@@ -149,7 +149,7 @@ DACUpdateTrack:
 		bne.s	@locret			; Return if yes
 		moveq	#0,d0
 		move.b	TrackSavedDAC(a5),d0	; Get sample
-		cmpi.b	#$80,d0			; Is it a rest?
+		cmpi.b	#nRst,d0			; Is it a rest?
 		beq.s	@locret			; Return if yes
 		stopZ80
 		move.b	d0,(z80_dac_sample).l
@@ -525,7 +525,7 @@ CycleSoundQueue:
 PlaySoundID:
 		moveq	#0,d7
 		move.b	v_sound_id(a6),d7
-		beq.w	StopAllSound
+		beq.w	StopAllSound				; stop sounds if sound is $00
 		move.b	#bgm_None,v_sound_id(a6)	; reset	music flag
 		cmpi.b	#bgm__Last,d7				; Is this music ($81-$93)?
 		bls.w	Sound_PlayBGM				; Branch if yes
@@ -558,23 +558,8 @@ ptr_flgend
 Sound_PlayBGM:
 		cmpi.b	#bgm_ExtraLife,d7	; is the "extra life" music to be played?
 		bne.s	@bgmnot1up		; if not, branch
-		tst.b	f_1up_playing(a6)	; Is a 1-up music playing?
+		tst.b	f_1up_playing(a6)	; Is the 1-up music playing?
 		bne.w	@locdblret		; if yes, branch
-		lea	v_music_track_ram(a6),a5
-		moveq	#((v_music_track_ram_end-v_music_track_ram)/TrackSz)-1,d0	; 1 DAC + 6 FM + 3 PSG tracks
-; loc_71FE6:
-@clearsfxloop:
-		bclr	#2,(a5)			; Clear 'SFX is overriding' bit (TrackPlaybackControl)
-		adda.w	#TrackSz,a5
-		dbf	d0,@clearsfxloop
-
-		lea	v_sfx_track_ram(a6),a5
-		moveq	#((v_sfx_track_ram_end-v_sfx_track_ram)/TrackSz)-1,d0	; 3 FM + 3 PSG tracks (SFX)
-; loc_71FF8:
-@cleartrackplayloop:
-		bclr	#7,(a5)			; Clear 'track is playing' bit (TrackPlaybackControl)
-		adda.w	#TrackSz,a5
-		dbf	d0,@cleartrackplayloop
 
 		clr.b	v_sndprio(a6)		; Clear priority
 		movea.l	a6,a0
@@ -585,7 +570,23 @@ Sound_PlayBGM:
 		move.l	(a0)+,(a1)+
 		dbf	d0,@backupramloop
 
-		move.b	#$80,f_1up_playing(a6)
+		lea	v_1up_ram_copy+v_music_track_ram(a6),a5
+		moveq	#((v_music_track_ram_end-v_music_track_ram)/TrackSz)-1,d0	; 1 DAC + 6 FM + 3 PSG tracks
+; loc_71FE6:
+@clearsfxloop:
+		bclr	#2,(a5)			; Clear 'SFX is overriding' bit (TrackPlaybackControl)
+		adda.w	#TrackSz,a5
+		dbf	d0,@clearsfxloop
+
+		lea	v_1up_ram_copy+v_sfx_track_ram(a6),a5
+		moveq	#((v_sfx_track_ram_end-v_sfx_track_ram)/TrackSz)-1,d0	; 3 FM + 3 PSG tracks (SFX)
+; loc_71FF8:
+@cleartrackplayloop:
+		bclr	#7,(a5)			; Clear 'track is playing' bit (TrackPlaybackControl)
+		adda.w	#TrackSz,a5
+		dbf	d0,@cleartrackplayloop
+
+		move.b	#1,f_1up_playing(a6)
 		bra.s	@bgm_loadMusic
 ; ===========================================================================
 ; loc_72024:
@@ -595,8 +596,8 @@ Sound_PlayBGM:
 ; loc_7202C:
 @bgm_loadMusic:
 		jsr	InitMusicPlayback(pc)
-		lea	(SpeedUpIndex).l,a4
 		subi.b	#bgm__First,d7
+		lea	(SpeedUpIndex).l,a4
 		move.b	(a4,d7.w),v_speeduptempo(a6)
 		lea	(MusicIndex).l,a4
 		lsl.w	#2,d7
@@ -645,6 +646,7 @@ Sound_PlayBGM:
 		
 		cmpi.b	#7,2(a3)	; Are 7 FM tracks defined?
 		bne.s	@silencefm6
+		sample	dStop
 		moveq	#$2B,d0		; DAC enable/disable register
 		moveq	#0,d1		; Disable DAC
 		jsr	WriteFMI(pc)
@@ -767,6 +769,7 @@ Sound_PlaySFX:
 		bne.w	@clear_sndprio		; Exit if it is
 		tst.b	f_fadein_flag(a6)	; Is music being faded in?
 		bne.w	@clear_sndprio		; Exit if it is
+
 		cmpi.b	#sfx_Ring,d7		; is ring sound	effect played?
 		bne.s	@sfx_notRing		; if not, branch
 		tst.b	v_ring_speaker(a6)	; Is the ring sound playing on right speaker?
@@ -1096,7 +1099,7 @@ StopSpecialSFX:
 FadeOutMusic:
 		jsr	StopSFX(pc)
 		jsr	StopSpecialSFX(pc)
-		move.b	#3,v_fadeout_delay(a6)			; Set fadeout delay to 3
+		move.b	#2,v_fadeout_delay(a6)			; Set fadeout delay to 3
 		move.b	#$28,v_fadeout_counter(a6)		; Set fadeout counter
 		clr.b	v_music_dac_track+TrackPlaybackControl(a6)	; Stop DAC track
 		clr.b	f_speedup(a6)				; Disable speed shoes tempo
@@ -1115,7 +1118,7 @@ DoFadeOut:
 @continuefade:
 		subq.b	#1,v_fadeout_counter(a6)	; Update fade counter
 		beq.w	StopAllSound			; Branch if fade is done
-		move.b	#3,v_fadeout_delay(a6)		; Reset fade delay
+		move.b	#2,v_fadeout_delay(a6)		; Reset fade delay
 		lea	v_music_fm_tracks(a6),a5
 		moveq	#((v_music_fm_tracks_end-v_music_fm_tracks)/TrackSz)-1,d7	; 6 FM tracks
 ; loc_72524:
@@ -1233,6 +1236,7 @@ InitMusicPlayback:
 		move.b	v_fadein_counter(a6),d4
 		; DANGER! Only v_soundqueue0 and v_soundqueue1 are backed up, once again breaking v_soundqueue2
 		move.l	v_soundqueue0(a6),d5
+
 		move.w	#((v_music_track_ram_end-v_startofvariables)/4)-1,d0	; Clear $220 bytes: all variables and music track data
 ; loc_725E4:
 @clearramloop:
@@ -1330,10 +1334,8 @@ DoFadeIn:
 ; ===========================================================================
 ; loc_72688:
 @continuefade:
-		tst.b	v_fadein_counter(a6)	; Is fade done?
-		beq.s	@fadedone		; Branch if yes
 		subq.b	#1,v_fadein_counter(a6)	; Update fade counter
-		move.b	#2,v_fadein_delay(a6)	; Reset fade delay
+		move.b	#1,v_fadein_delay(a6)	; Reset fade delay
 		lea	v_music_fm_tracks(a6),a5
 		moveq	#((v_music_fm_tracks_end-v_music_fm_tracks)/TrackSz)-1,d7	; 6 FM tracks
 ; loc_7269E:
@@ -1358,16 +1360,20 @@ DoFadeIn:
 @nextpsg:
 		adda.w	#TrackSz,a5
 		dbf	d7,@psgloop
+
+		tst.b	v_fadein_counter(a6)	; Is fade done?
+		beq.s	@fadedone		; Branch if yes
 		rts	
 ; ===========================================================================
 ; loc_726D6:
 @fadedone:
 		bclr	#2,v_music_dac_track+TrackPlaybackControl(a6)	; Clear 'SFX overriding' bit
 		clr.b	f_fadein_flag(a6)				; Stop fadein
-		tst.b   v_music_track_ram(a6)	; is the DAC channel running?
+		; ???
+		tst.b   v_music_dac_track(a6)	; is the DAC channel running?
 		bpl.s   @fadedonenodac			; if not, branch
 		move.b	#$B6,d0					; FM channel 6 L/R/AMS/FMS address
-		move.b  $4A(a6),d1				; load DAC channel's L/R/AMS/FMS value
+		move.b  v_music_dac_track+TrackAMSFMSPan(a6),d1	; load DAC channel's L/R/AMS/FMS value
 		jsr WriteFMII(pc)				; write to FM 6
 
 @fadedonenodac:
@@ -1847,7 +1853,7 @@ cfFadeInToPrevious:
 		dbf	d7,@psgloop
 		
 		movea.l	a3,a5
-		move.b	#$80,f_fadein_flag(a6)		; Trigger fade-in
+		move.b	#1,f_fadein_flag(a6)		; Trigger fade-in
 		move.b	#$28,v_fadein_counter(a6)	; Fade-in delay
 		clr.b	f_1up_playing(a6)
 		addq.w	#8,sp		; Tamper return value so we don't return to caller

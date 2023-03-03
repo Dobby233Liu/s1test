@@ -24,10 +24,8 @@ EnableSRAM:		equ 1	; change to 1 to enable SRAM
 BackupSRAM:		equ 1
 AddressSRAM:	equ 3	; 0 = odd+even; 2 = even only; 3 = odd only
 
-; Change to 0 to build the original version of the game, dubbed REV00
-; Change to 1 to build the later vesion, dubbed REV01, which includes various bugfixes and enhancements
-; Change to 2 to build the version from Sonic Mega Collection, dubbed REVXB, which fixes the infamous "spike bug"
-Revision:	equ 2 ; consider: 1 for reality and 2 for virutal.
+; Do not change !!
+Revision:	equ 2
 
 ZoneCount:	equ 6	; discrete zones are: GHZ, MZ, SYZ, LZ, SLZ, and SBZ
 
@@ -102,11 +100,7 @@ Console:	dc.b "SEGA MEGA DRIVE " ; Hardware system ID (Console name)
 Date:		dc.b "(C)SEGA 2023.FEB" ; Copyright holder and release date (generally year)
 Title_Local:dc.b "SONIC THE HEDGEHOG                              " ; Domestic name
 Title_Int:	dc.b "SONIC THE HEDGEHOG                              " ; International name
-Serial:		if Revision=0
-		dc.b "GM 00001009-00"   ; Serial/version number (Rev 0)
-		else
-			dc.b "GM 00004049-02" ; Serial/version number (Rev 2, todo 8)
-		endc
+Serial:		dc.b "GM 00004049-02" ; Serial/version number
 Checksum: dc.w $0
 		dc.b "J               " ; I/O support
 RomStartLoc:	dc.l StartOfRom		; Start address of ROM
@@ -254,6 +248,7 @@ EntryPoint:
 		move.w	#bgm__First,(v_levselsound).w
 
 		move.b	#id_Sega,(v_gamemode).w			; set Game Mode to Sega Screen
+		bsr	GM_Sega_init
 MainGameLoop:
 		move.b	(v_gamemode).w,d0 ; load Game Mode
 		andi.w	#$7C,d0	; limit Game Mode value to $1C max (change to a maximum of 7C to add more game modes)
@@ -535,7 +530,7 @@ Art_Text:	incbin	"artunc\menutext.bin" ; text used in level select and debug mod
 VBlank:
 		movem.l	d0-a6,-(sp)
 		tst.b	(v_vbla_routine).w
-		beq.s	VBla_00
+		beq.s	@notPAL
 		move.w	(vdp_control_port).l,d0
 		move.l	#$40000010,(vdp_control_port).l
 		move.l	(v_scrposy_dup).w,(vdp_data_port).l ; send screen y-axis pos. to VSRAM
@@ -555,15 +550,12 @@ VBlank:
 		jsr	VBla_Index(pc,d0.w)
 
 VBla_Music:
-		enable_ints
-		bset	#0,(f_smps_running).w	; set "SMPS running flag"
-		bne.s	VBla_Exit				; if it was set already, don't call another instance of SMPS
-        jsr 	UpdateMusic     		; run SMPS
-		clr.b	(f_smps_running).w		; reset "SMPS running flag"
+        jsr	UpdateMusic     ; run SMPS
 
 VBla_Exit:
 		addq.l	#1,(v_vbla_count).w
 		movem.l	(sp)+,d0-a6
+		enable_ints
 		rte	
 ; ===========================================================================
 VBla_Index:	dc.w VBla_00-VBla_Index, VBla_02-VBla_Index
@@ -607,31 +599,25 @@ VBla_00:
 	@waterbelow:
 		move.w	(v_hbla_hreg).w,(a5)
 @end:
-		bra.w	VBla_Music
-; ===========================================================================
-
-VBla_02:
-		bsr.w	sub_106E
-
-VBla_14:
-		tst.w	(v_demolength).w
-		beq.w	@end
-		subq.w	#1,(v_demolength).w
-
-	@end:
-		rts	
+		rts
 ; ===========================================================================
 
 VBla_04:
 		bsr.w	sub_106E
 		bsr.w	LoadTilesAsYouMove_BGOnly
 		bsr.w	sub_1642
-		tst.w	(v_demolength).w
-		beq.w	@end
-		subq.w	#1,(v_demolength).w
+		bra.s	VBla_14
 
-	@end:
+VBla_02:
+		bsr.w	sub_106E
+
+VBla_14:
+		tst.w	(v_demolength).w
+		beq.w	@skip
+		subq.w	#1,(v_demolength).w
+	@skip:
 		rts	
+
 ; ===========================================================================
 
 VBla_06:
@@ -1870,10 +1856,11 @@ WaitForVBla:
 ; ---------------------------------------------------------------------------
 
 GM_Sega:
-		sfx	bgm_Fade	; stop music
+		sfx	bgm_Stop	; stop music
+		bsr.w	PaletteFadeOut
+GM_Sega_init:
 		bsr.w	ClearPLC
 		bsr.w	ClearScreen
-		bsr.w	PaletteFadeOut
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; use 8-colour mode
 		move.w	#$8200+(vram_fg>>10),(a6) ; set foreground nametable address
@@ -2140,17 +2127,8 @@ Tit_ChkLevSel:
 		btst	#bitA,(v_jpadhold1).w ; check if A is pressed
 		beq.w	PlayLevel	; if not, play level
 
-		moveq	#palid_LevelSel,d0
-		bsr.w	PalLoad2	; load level select palette
-		lea	(v_hscrolltablebuffer).w,a1
-		moveq	#0,d0
-		move.w	#$DF,d1
+		move.l	#0,(v_scrposy_dup).w
 
-	Tit_ClrScroll1:
-		move.l	d0,(a1)+
-		dbf	d1,Tit_ClrScroll1 ; clear scroll data (in RAM)
-
-		move.l	d0,(v_scrposy_dup).w
 		disable_ints
 		lea	(vdp_data_port).l,a6
 		locVRAM	$E000
@@ -2158,12 +2136,23 @@ Tit_ChkLevSel:
 
 	Tit_ClrScroll2:
 		move.l	d0,(a6)
-		dbf	d1,Tit_ClrScroll2 ; clear scroll data (in VRAM)
+		dbf	d1,Tit_ClrScroll2 ; clear background namespace
+
+		lea	(v_hscrolltablebuffer).w,a1
+		moveq	#0,d0
+		move.w	#($400/4)-1,d1
+
+	Tit_ClrScroll1:
+		move.l	d0,(a1)+
+		dbf	d1,Tit_ClrScroll1 ; clear scroll data (in RAM)
+
+		moveq	#palid_LevelSel,d0
+		bsr.w	PalLoad2	; load level select palette
+
 		move.b  #bgm_SS,d0
 		jsr		PlaySound
 		bsr.w	LevSelTextLoad
 		bra.s	LevelSelect
-; Fall-through
 
 ; ---------------------------------------------------------------------------
 ; Level pointers
@@ -6730,8 +6719,10 @@ Sonic_Index:	dc.w Sonic_Main-Sonic_Index
 		dc.w Sonic_Control-Sonic_Index
 		dc.w Sonic_Hurt-Sonic_Index
 		dc.w Sonic_Death-Sonic_Index
-		dc.w Sonic_ResetLevel-Sonic_Index
+		dc.w Sonic_OverReset-Sonic_Index
 		dc.w Sonic_Drowned-Sonic_Index
+		dc.w Sonic_Empty-Sonic_Index
+		even
 ; ===========================================================================
 
 Sonic_Main:	; Routine 0
@@ -6756,8 +6747,9 @@ Sonic_Control:	; Routine 2
 		move.w	#1,(v_debuguse).w ; change Sonic into a ring/item
 		clr.b	(f_lockctrl).w
 		rts	
-		include "_inc\Sonic PanCamera.asm"
 ; ===========================================================================
+
+		include "_inc\Sonic PanCamera.asm"
 
 loc_12C58:
 		tst.b	(f_lockctrl).w	; are controls locked?

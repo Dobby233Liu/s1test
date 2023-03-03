@@ -60,7 +60,7 @@ v_music_track_ram:	equ $040	; Start of music RAM
 v_music_fmdac_tracks:	equ v_music_track_ram+TrackSz*0
 v_music_dac_track:	equ v_music_fmdac_tracks+TrackSz*0
 v_music_fm_tracks:	equ v_music_fmdac_tracks+TrackSz*1
-v_music_fm1_track:	equ v_music_fm_tracks+TrackSz*0
+v_music_fm1_track:	equ v_music_fm_tracks+TrackSz*0 ; What the fuck ??
 v_music_fm2_track:	equ v_music_fm_tracks+TrackSz*1
 v_music_fm3_track:	equ v_music_fm_tracks+TrackSz*2
 v_music_fm4_track:	equ v_music_fm_tracks+TrackSz*3

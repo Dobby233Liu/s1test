@@ -50,60 +50,66 @@ locret_13860:
 ; ---------------------------------------------------------------------------
 
 Sonic_Death:	; Routine 6
-		bsr.w	GameOver
-		jsr	(ObjectFall).l
+		move.w	(v_screenposy).w,d0
+		addi.w	#$100,d0
+		cmp.w	obY(a0),d0
+		bge.w	@cont
+
+		bra.s	Sonic_Death_RestartLevelOrShowOver
+		; the game should really have changed obRoutine now
+		; i hope
+
+	@cont:
+		jsr		(ObjectFall).l
 		bsr.w	Sonic_RecordPosition
 		bsr.w	Sonic_Animate
 		bsr.w	Sonic_LoadGfx
-		jmp	(DisplaySprite).l
+		jmp		(DisplaySprite).l
 
 ; ||||||||||||||| S U B	R O U T	I N E |||||||||||||||||||||||||||||||||||||||
 
-
-GameOver:
-		move.w	($FFFFF704).w,d0
-		addi.w	#$100,d0
-		cmp.w	obY(a0),d0
-		bge.w	locret_13900
-
+Sonic_Death_RestartLevelOrShowOver:
 		move.w	#-$38,obVelY(a0)
+		clr.b	(f_timecount).w		; stop time counter
+		move.w	#60,flashtime(a0)	; set time delay to 1 second
 		addq.b	#2,obRoutine(a0)
-		clr.b	(f_timecount).w	; stop time counter
 
-	;Mercury Lives Over/Underflow Fix
 		cmpi.b	#0,(v_lives).w	; are lives at min?
-		beq.s	@skip
+		beq.s	@actuallydead	; then we *are* dead
 		addq.b	#1,(f_lifecount).w ; update lives counter
 		subq.b	#1,(v_lives).w	; subtract 1 from number of lives
-		bne.s	loc_138D4
-	@skip:
-	;end Lives Over/Underflow Fix
+		beq.s	@actuallydead	; if 0, then we are dead
 
-		move.w	#0,$3A(a0)
+		tst.b	(f_timeover).w	; is time over flag set?
+		beq.s	@locret			; exit if not
+		bra.s	@cont
+	@actuallydead:
+		clr.b	(f_timeover).w
+	@cont:
+
+		addq.b	#4,obRoutine(a0)
+
 		move.b	#id_GameOverCard,(v_objspace+$80).w ; load GAME object
 		move.b	#id_GameOverCard,(v_objspace+$C0).w ; load OVER object
-		move.b	#1,(v_objspace+$C0+obFrame).w ; set OVER object to correct frame
-		clr.b	(f_timeover).w
 
-loc_138C2:
-		music	bgm_GameOver	; play game over music
-		moveq	#3,d0
-		jmp	(AddPLC).l	; load game over patterns
-; ===========================================================================
+		tst.b	(f_timeover).w		; is TIME OVER flag set?
+		beq.s	@gameover			; if no, branch
 
-loc_138D4:
-		move.w	#60,$3A(a0)	; set time delay to 1 second
-		tst.b	(f_timeover).w	; is TIME OVER tag set?
-		beq.s	locret_13900	; if not, branch
-		move.w	#0,$3A(a0)
-		move.b	#id_GameOverCard,(v_objspace+$80).w ; load TIME object
-		move.b	#id_GameOverCard,(v_objspace+$C0).w ; load OVER object
+		; Show TIME OVER
 		move.b	#2,(v_objspace+$80+obFrame).w
 		move.b	#3,(v_objspace+$C0+obFrame).w
-		bra.s	loc_138C2
-; ===========================================================================
+		music	bgm_Fade
+		bra.s	@loadplc
 
-locret_13900:
+@gameover:
+		move.b	#1,(v_objspace+$C0+obFrame).w ; set OVER object to correct frame
+		music	bgm_GameOver	; play game over music
+
+@loadplc:
+		move.w	#3,d0
+		jmp	AddPLC	; load game over patterns
+
+@locret:
 		rts	
 ; End of function GameOver
 
@@ -111,12 +117,12 @@ locret_13900:
 ; Sonic	when the level is restarted
 ; ---------------------------------------------------------------------------
 
-Sonic_ResetLevel:; Routine 8
-		tst.w	$3A(a0)
-		beq.s	locret_13914
-		subq.w	#1,$3A(a0)	; subtract 1 from time delay
-		bne.s	locret_13914
+Sonic_OverReset:	; Routine 8
+		tst.w	flashtime(a0)
+		beq.s	Sonic_Empty
+		subq.w	#1,flashtime(a0)	; subtract 1 from time delay
+		bne.s	Sonic_Empty
 		move.w	#1,(f_restart).w ; restart the level
 
-	locret_13914:
+Sonic_Empty:	; Routine 12
 		rts	
