@@ -529,11 +529,13 @@ Art_Text:	incbin	"artunc\menutext.bin" ; text used in level select and debug mod
 
 VBlank:
 		movem.l	d0-a6,-(sp)
-		tst.b	(v_vbla_routine).w
-		beq.s	@notPAL
+
 		move.w	(vdp_control_port).l,d0
 		move.l	#$40000010,(vdp_control_port).l
 		move.l	(v_scrposy_dup).w,(vdp_data_port).l ; send screen y-axis pos. to VSRAM
+
+        jsr	UpdateMusic     ; run SMPS
+
 		btst	#6,(v_megadrive).w ; is Megadrive PAL?
 		beq.s	@notPAL		; if not, branch
 
@@ -549,10 +551,6 @@ VBlank:
 		move.w	VBla_Index(pc,d0.w),d0
 		jsr	VBla_Index(pc,d0.w)
 
-VBla_Music:
-        jsr	UpdateMusic     ; run SMPS
-
-VBla_Exit:
 		addq.l	#1,(v_vbla_count).w
 		movem.l	(sp)+,d0-a6
 		enable_ints
@@ -621,8 +619,8 @@ VBla_14:
 ; ===========================================================================
 
 VBla_06:
-		bsr.w	sub_106E
-		rts	
+		bra.w	sub_106E
+
 ; ===========================================================================
 
 VBla_10:
@@ -1249,12 +1247,12 @@ Pal_SBZCyc10:	incbin	"palette\Cycle - SBZ 10.bin"
 
 
 PaletteFadeIn:
-		move.w	#$3F,($FFFFF626).w
+		move.w	#$3F,(v_pfade_start).w
 
 PalFadeIn_Alt:
 		moveq	#0,d0
 		lea	($FFFFFB00).w,a0
-		move.b	($FFFFF626).w,d0
+		move.b	(v_pfade_start).w,d0
 		adda.w	d0,a0
 		moveq	#0,d1
 		move.b	($FFFFF627).w,d0
@@ -1267,14 +1265,14 @@ Pal_ToBlack:
 
 loc_1DCE:
 		bsr.w	RunPLC
-		move.b	#$12,($FFFFF62A).w
+		move.b	#$12,(v_vbla_routine).w
 		bsr.w	WaitforVBla
 		bchg	#$00,d6					; MJ: change delay counter
 		beq	loc_1DCE				; MJ: if null, delay a frame
 		bsr.s	Pal_FadeIn
 		subq.b	#$02,d4					; MJ: decrease colour check
 		bne	loc_1DCE				; MJ: if it has not reached null, branch
-		move.b	#$12,($FFFFF62A).w			; MJ: wait for V-blank again (so colours transfer)
+		move.b	#$12,(v_vbla_routine).w			; MJ: wait for V-blank again (so colours transfer)
 		bra	WaitforVBla				; MJ: ''
 
 ; End of function Pal_FadeTo
@@ -1290,7 +1288,7 @@ Pal_FadeIn:				; XREF: Pal_FadeTo
 		moveq	#0,d0
 		lea	($FFFFFB00).w,a0
 		lea	($FFFFFB80).w,a1
-		move.b	($FFFFF626).w,d0
+		move.b	(v_pfade_start).w,d0
 		adda.w	d0,a0
 		adda.w	d0,a1
 		move.b	($FFFFF627).w,d0
@@ -1303,7 +1301,7 @@ loc_1DFA:
 		moveq	#0,d0
 		lea	($FFFFFA80).w,a0
 		lea	($FFFFFA00).w,a1
-		move.b	($FFFFF626).w,d0
+		move.b	(v_pfade_start).w,d0
 		adda.w	d0,a0
 		adda.w	d0,a1
 		move.b	($FFFFF627).w,d0
@@ -1352,18 +1350,18 @@ FCI_NoRed:
 
 
 PaletteFadeOut:
-		move.w	#$3F,($FFFFF626).w
+		move.w	#$3F,(v_pfade_start).w
 		moveq	#$07,d4					; MJ: set repeat times
 		moveq	#$00,d6					; MJ: clear d6
 
 loc_1E5C:
 		bsr.w	RunPLC
-		move.b	#$12,($FFFFF62A).w
+		move.b	#$12,(v_vbla_routine).w
 		bsr.w	WaitforVBla
 		bchg	#$00,d6					; MJ: change delay counter
-		beq	loc_1E5C				; MJ: if null, delay a frame
+		beq		loc_1E5C				; MJ: if null, delay a frame
 		bsr.s	FadeOut_ToBlack
-		dbf	d4,loc_1E5C
+		dbf		d4,loc_1E5C
 		rts	
 ; End of function Pal_FadeFrom
 
@@ -1377,7 +1375,7 @@ loc_1E5C:
 FadeOut_ToBlack:				; XREF: Pal_FadeFrom
 		moveq	#0,d0
 		lea	($FFFFFB00).w,a0
-		move.b	($FFFFF626).w,d0
+		move.b	(v_pfade_start).w,d0
 		adda.w	d0,a0
 		move.b	($FFFFF627).w,d0
 
@@ -1387,7 +1385,7 @@ loc_1E82:
 
 		moveq	#0,d0
 		lea	($FFFFFA80).w,a0
-		move.b	($FFFFF626).w,d0
+		move.b	(v_pfade_start).w,d0
 		adda.w	d0,a0
 		move.b	($FFFFF627).w,d0
 
@@ -1860,7 +1858,6 @@ GM_Sega:
 		bsr.w	PaletteFadeOut
 GM_Sega_init:
 		bsr.w	ClearPLC
-		bsr.w	ClearScreen
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; use 8-colour mode
 		move.w	#$8200+(vram_fg>>10),(a6) ; set foreground nametable address
@@ -1906,7 +1903,7 @@ Sega_WaitPal:
 		sample	dSega	; play "SEGA" sound
 		move.b	#$14,(v_vbla_routine).w
 		bsr.w	WaitForVBla
-		move.w	#$78+$12,(v_demolength).w
+		move.w	#$78+$1E,(v_demolength).w
 
 Sega_WaitEnd:
 		btst	#bitStart,(v_jpadpress1).w ; is Start button pressed?
@@ -1928,21 +1925,8 @@ Sega_GotoTitle:
 
 GM_Title:
 		sfx	bgm_Stop	; stop music
-		bsr.w	PaletteFadeOut
-
-		clr.w	(f_demo).w	; disable demo mode
-		clr.b	(v_lastlamp).w ; clear lamppost counter
-		clr.b	(f_debugmode).w ; disable debug mode
-		clr.w	(v_debuguse).w ; disable debug item placement mode
-		clr.w	(v_pcyc_time).w ; reset palette cycling timer
-		clr.b 	(f_nobgscroll).w ; IsoKilo fix
-		clr.b	(f_wtr_state).w
-		move.w	#$200,(v_demolength).w ; run title screen for $200 frames
-		move.w	#0,(v_title_dcount).w
-		move.w	#0,(v_title_ccount).w
-		bsr.w	ClearPLC
-		bsr.w	ClearScreen
-
+		bsr		PaletteFadeOut
+		bsr		ClearPLC
 		disable_ints
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; 8-colour mode
@@ -1952,6 +1936,15 @@ GM_Title:
 		move.w	#$9200,(a6)	; window vertical position
 		move.w	#$8B03,(a6)
 		move.w	#$8720,(a6)	; set background colour (palette line 2, entry 0)
+		clr.b	(f_wtr_state).w
+		bsr		ClearScreen
+
+		clr.w	(f_demo).w	; disable demo mode
+		clr.b	(v_lastlamp).w ; clear lamppost counter
+		clr.b	(f_debugmode).w ; disable debug mode
+		clr.w	(v_debuguse).w ; disable debug item placement mode
+		clr.w	(v_pcyc_time).w ; reset palette cycling timer
+		clr.b 	(f_nobgscroll).w ; IsoKilo fix
 
 		lea	(v_objspace).w,a1
 		moveq	#0,d0
@@ -1960,15 +1953,18 @@ GM_Title:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj1	; fill object space ($D000-$EFFF) with 0
 
-		copyTilemap	$FF0000,$C000,$27,$1B
-
 		lea	(v_pal_dry_dup).w,a1
 		moveq	#cBlack,d0
 		move.w	#$1F,d1
-
 	Tit_ClrPal:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrPal	; fill palette with 0 (black)
+
+		;copyTilemap	$FF0000,$C000,$27,$1B
+
+		move.w	#$200+$1E,(v_demolength).w ; run title screen for $200 frames
+		move.w	#0,(v_title_dcount).w
+		move.w	#0,(v_title_ccount).w
 
 		moveq	#palid_Sonic,d0	; load Sonic's palette
 		bsr.w	PalLoad1
@@ -1982,6 +1978,7 @@ GM_Title:
 
 		bsr.w	PaletteFadeIn
 
+	; We will show S/T/P while decompressing graphics
 		disable_ints
 		locVRAM	$4000
 		lea	(Nem_TitleFg).l,a0 ; load title	screen patterns
@@ -2010,8 +2007,6 @@ GM_Title:
 	Tit_ClrObj2:
 		move.l	d0,(a1)+
 		dbf	d1,Tit_ClrObj2
-
-		clr.w	(v_creditsnum).w
 
 		disable_ints
 		moveq	#plcid_Main,d0
@@ -2043,9 +2038,8 @@ GM_Title:
 	@isjap:
 		moveq	#palid_Title,d0	; load title screen palette
 		bsr.w	PalLoad1
-		bsr.w	PaletteFadeIn
-
 		sfx	bgm_Title	; play title screen music
+		bsr.w	PaletteFadeIn
 
 		move.w	(v_vdp_buffer1).w,d0
 		ori.b	#$40,d0
@@ -2120,73 +2114,83 @@ loc_3230:
 		beq.w	GotoDemo
 		andi.b	#btnStart,(v_jpadpress1).w ; check if Start is pressed
 		beq.w	Tit_MainLoop	; if not, branch
-
-Tit_ChkLevSel:
 		tst.b	(f_levselcheat).w ; check if level select code is on
 		beq.w	PlayLevel	; if not, play level
 		btst	#bitA,(v_jpadhold1).w ; check if A is pressed
 		beq.w	PlayLevel	; if not, play level
 
+fillVRAM_a6:	macro value,length,loc
+		lea	(vdp_control_port).l,a6
+		move.w	#$8F01,(a6)
+		move.l	#$94000000+((length&$FF00)<<8)+$9300+(length&$FF),(a6)
+		move.w	#$9780,(a6)
+		move.l	#$40000080+((loc&$3FFF)<<16)+((loc&$C000)>>14),(a6)
+		move.w	#value,(vdp_data_port).l
+	@wait\@:
+		move.w	(a6),d1
+		btst	#1,d1
+		bne.s	@wait\@
+		move.w	#$8F02,(a6)
+		endm
+
+Tit_StartLevSel:
 		move.l	#0,(v_scrposy_dup).w
-
-		disable_ints
-		lea	(vdp_data_port).l,a6
-		locVRAM	$E000
-		move.w	#$3FF,d1
-
-	Tit_ClrScroll2:
-		move.l	d0,(a6)
-		dbf	d1,Tit_ClrScroll2 ; clear background namespace
 
 		lea	(v_hscrolltablebuffer).w,a1
 		moveq	#0,d0
 		move.w	#($400/4)-1,d1
-
-	Tit_ClrScroll1:
+	@clrscroll:
 		move.l	d0,(a1)+
-		dbf	d1,Tit_ClrScroll1 ; clear scroll data (in RAM)
+		dbf	d1,@clrscroll ; clear scroll data (in RAM)
+
+		fillVRAM_a6	0,$FFF,vram_bg
 
 		moveq	#palid_LevelSel,d0
 		bsr.w	PalLoad2	; load level select palette
 
-		move.b  #bgm_SS,d0
-		jsr		PlaySound
-		bsr.w	LevSelTextLoad
-		bra.s	LevelSelect
+		music	bgm_SS
+		bsr	LevSelTextLoad
+		bra	LevelSelect
 
 ; ---------------------------------------------------------------------------
-; Level pointers
+; Start demo mode
 ; ---------------------------------------------------------------------------
-LevSel_Ptrs:
-		if 0=1
-			dc.b id_Ending, 0
-			dc.b id_Ending, 1
-			dc.b id_Ending, 2
-		else
-			dc.b id_GHZ, 0
-			dc.b id_GHZ, 1
-			dc.b id_GHZ, 2
-		endc
-		dc.b id_MZ, 0
-		dc.b id_MZ, 1
-		dc.b id_MZ, 2
-		dc.b id_SYZ, 0
-		dc.b id_SYZ, 1
-		dc.b id_SYZ, 2
-		dc.b id_LZ, 0
-		dc.b id_LZ, 1
-		dc.b id_LZ, 2
-		dc.b id_SLZ, 0
-		dc.b id_SLZ, 1
-		dc.b id_SLZ, 2
-		dc.b id_SBZ, 0
-		dc.b id_SBZ, 1
-		dc.b id_LZ, 3
-		dc.b id_SBZ, 2
-		dc.b id_SS, 0	; Special Stage
-		dc.w $8000		; Sound Test
+
+GotoDemo:
+		sfx	bgm_Fade ; fade out music
+		move.w	(v_demonum).w,d0 ; load	demo number
+		andi.w	#7,d0
+		add.w	d0,d0
+		move.w	Demo_Levels(pc,d0.w),d0	; load level number for	demo
+		move.w	d0,(v_zone).w
+		addq.w	#1,(v_demonum).w ; add 1 to demo number
+		cmpi.w	#4,(v_demonum).w ; is demo number less than 4?
+		blo.s	@go				; if yes, branch
+		move.w	#0,(v_demonum).w ; reset demo number to	0
+@go:
+		move.w	#1,(f_demo).w	; turn demo mode on
+		move.b	#id_Demo,(v_gamemode).w ; set screen mode to 08 (demo)
+		cmpi.w	#(id_SS*100)+(0),d0	; is level number 0600 (special	stage)?
+		bne.s	@level	; if not, branch
+		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
+		clr.w	(v_zone).w	; clear	level number
+		clr.b	(v_lastspecial).w ; clear special stage number
+@level:
+		move.b	#3,(v_lives).w	; set lives to 3
+		moveq	#0,d0
+		move.w	d0,(v_rings).w	; clear rings
+		move.l	d0,(v_time).w	; clear time
+		move.l	d0,(v_score).w	; clear score
+		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
+		rts	
+; ===========================================================================
+; ---------------------------------------------------------------------------
+; Levels used in demos
+; ---------------------------------------------------------------------------
+Demo_Levels:	incbin	"misc\Demo Level Order - Intro.bin"
 		even
 
+; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Level	Select
 ; ---------------------------------------------------------------------------
@@ -2206,7 +2210,7 @@ LevelSelect:
 
 @level_ss:
 		add.w	d0,d0
-		move.w	LevSel_Ptrs(pc,d0.w),d0 ; load level number
+		move.w	@ptrs(pc,d0.w),d0 ; load level number
 		bmi.w	LevelSelect
 		cmpi.b	#id_SS,d0	; check	if level is 0700 (Special Stage)
 		beq.s	@ss	; if yes, branch
@@ -2223,6 +2227,33 @@ LevelSelect:
 		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
 		rts
+
+; ---------------------------------------------------------------------------
+; Level pointers
+; ---------------------------------------------------------------------------
+@ptrs:
+		dc.b id_GHZ, 0
+		dc.b id_GHZ, 1
+		dc.b id_GHZ, 2
+		dc.b id_MZ, 0
+		dc.b id_MZ, 1
+		dc.b id_MZ, 2
+		dc.b id_SYZ, 0
+		dc.b id_SYZ, 1
+		dc.b id_SYZ, 2
+		dc.b id_LZ, 0
+		dc.b id_LZ, 1
+		dc.b id_LZ, 2
+		dc.b id_SLZ, 0
+		dc.b id_SLZ, 1
+		dc.b id_SLZ, 2
+		dc.b id_SBZ, 0
+		dc.b id_SBZ, 1
+		dc.b id_LZ, 3
+		dc.b id_SBZ, 2
+		dc.b id_SS, 0	; Special Stage
+		dc.w $8000		; Sound Test
+		even
 
 @soundtest:
 		move.w	(v_levselsound).w,d0
@@ -2294,8 +2325,7 @@ LevSel_Down:
 
 LevSel_Refresh:
 		move.w	d0,(v_levselitem).w ; set new selection
-		bsr.w	LevSelTextLoad	; refresh text
-		rts	
+		bra.w	LevSelTextLoad	; refresh text
 ; ===========================================================================
 
 LevSel_SndTest:
@@ -2322,7 +2352,7 @@ LevSel_Right:
 
 LevSel_Refresh2:
 		move.w	d0,(v_levselsound).w ; set sound test number
-		bsr.w	LevSelTextLoad	; refresh text
+		bra.w	LevSelTextLoad	; refresh text
 
 LevSel_NoMove:
 		rts	
@@ -2434,73 +2464,6 @@ LevSelCode_J:
 LevelMenuText:
 		incbin	"misc\Level Select Text (JP1).bin"
 		even
-; ===========================================================================
-
-; ---------------------------------------------------------------------------
-; Demo mode
-; ---------------------------------------------------------------------------
-
-GotoDemo:
-		move.w	#$1E,(v_demolength).w
-
-loc_33B6:
-		move.b	#4,(v_vbla_routine).w
-		bsr.w	WaitForVBla
-		bsr.w	DeformLayers
-		bsr.w	PaletteCycle
-		bsr.w	RunPLC
-		move.w	(v_objspace+obX).w,d0
-		addq.w	#2,d0
-		move.w	d0,(v_objspace+obX).w
-		cmpi.w	#$1C00,d0
-		blo.s	loc_33E4
-		move.b	#id_Sega,(v_gamemode).w
-		rts	
-; ===========================================================================
-
-loc_33E4:
-		andi.b	#btnStart,(v_jpadpress1).w ; is Start button pressed?
-		bne.w	Tit_ChkLevSel	; if yes, branch
-		tst.w	(v_demolength).w
-		bne.w	loc_33B6
-		sfx	bgm_Fade ; fade out music
-		move.w	(v_demonum).w,d0 ; load	demo number
-		andi.w	#7,d0
-		add.w	d0,d0
-		move.w	Demo_Levels(pc,d0.w),d0	; load level number for	demo
-		move.w	d0,(v_zone).w
-		addq.w	#1,(v_demonum).w ; add 1 to demo number
-		cmpi.w	#4,(v_demonum).w ; is demo number less than 4?
-		blo.s	loc_3422	; if yes, branch
-		move.w	#0,(v_demonum).w ; reset demo number to	0
-
-loc_3422:
-		move.w	#1,(f_demo).w	; turn demo mode on
-		move.b	#id_Demo,(v_gamemode).w ; set screen mode to 08 (demo)
-		cmpi.w	#$600,d0	; is level number 0600 (special	stage)?
-		bne.s	Demo_Level	; if not, branch
-		move.b	#id_Special,(v_gamemode).w ; set screen mode to $10 (Special Stage)
-		clr.w	(v_zone).w	; clear	level number
-		clr.b	(v_lastspecial).w ; clear special stage number
-
-Demo_Level:
-		move.b	#3,(v_lives).w	; set lives to 3
-		moveq	#0,d0
-		move.w	d0,(v_rings).w	; clear rings
-		move.l	d0,(v_time).w	; clear time
-		move.l	d0,(v_score).w	; clear score
-		if Revision=0
-		else
-			move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
-		endc
-		rts	
-; ===========================================================================
-; ---------------------------------------------------------------------------
-; Levels used in demos
-; ---------------------------------------------------------------------------
-Demo_Levels:	incbin	"misc\Demo Level Order - Intro.bin"
-		even
-
 ; ===========================================================================
 ; ---------------------------------------------------------------------------
 ; Music	playlist
