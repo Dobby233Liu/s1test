@@ -244,6 +244,7 @@ smpsHeaderPSG macro loc,pitch,vol,mod,voice
 		dc.b	pitch
 	endif
 	dc.b	vol,voice
+	even
 	endm
 
 ; Header macros for SFX (not for music)

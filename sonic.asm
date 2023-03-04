@@ -534,8 +534,6 @@ VBlank:
 		move.l	#$40000010,(vdp_control_port).l
 		move.l	(v_scrposy_dup).w,(vdp_data_port).l ; send screen y-axis pos. to VSRAM
 
-        jsr	UpdateMusic     ; run SMPS
-
 		btst	#6,(v_megadrive).w ; is Megadrive PAL?
 		beq.s	@notPAL		; if not, branch
 
@@ -551,7 +549,8 @@ VBlank:
 		move.w	VBla_Index(pc,d0.w),d0
 		jsr	VBla_Index(pc,d0.w)
 
-		addq.l	#1,(v_vbla_count).w
+        jsr	UpdateMusic     ; run SMPS
+
 		movem.l	(sp)+,d0-a6
 		enable_ints
 		rte	

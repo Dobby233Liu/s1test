@@ -693,6 +693,7 @@ Sound_PlayBGM:
 		move.l	d0,TrackDataPointer(a1)	; Store track pointer
 		move.w	(a4)+,TrackTranspose(a1)	; load PSG modifier
 		move.b	(a4)+,TrackVoiceIndex(a1)	; Initial PSG tone
+		adda.w	#1,a4
 		adda.w	d6,a1
 		dbf	d7,@bgm_psgloadloop
 ; loc_72154:
