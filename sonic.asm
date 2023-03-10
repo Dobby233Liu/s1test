@@ -6683,7 +6683,6 @@ Sonic_Index:	dc.w Sonic_Main-Sonic_Index
 		dc.w Sonic_Death-Sonic_Index
 		dc.w Sonic_OverReset-Sonic_Index
 		dc.w Sonic_Drowned-Sonic_Index
-		dc.w Sonic_Empty-Sonic_Index
 		even
 ; ===========================================================================
 

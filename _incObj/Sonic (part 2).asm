@@ -87,7 +87,7 @@ Sonic_Death_RestartLevelOrShowOver:
 		clr.b	(f_timeover).w
 	@cont:
 
-		addq.b	#4,obRoutine(a0)
+		move.w	#0,flashtime(a0)	; do nothing after this
 
 		move.b	#id_GameOverCard,(v_objspace+$80).w ; load GAME object
 		move.b	#id_GameOverCard,(v_objspace+$C0).w ; load OVER object
@@ -119,10 +119,9 @@ Sonic_Death_RestartLevelOrShowOver:
 
 Sonic_OverReset:	; Routine 8
 		tst.w	flashtime(a0)
-		beq.s	Sonic_Empty
+		beq.s	@locret
 		subq.w	#1,flashtime(a0)	; subtract 1 from time delay
-		bne.s	Sonic_Empty
+		bne.s	@locret
 		move.w	#1,(f_restart).w ; restart the level
-
-Sonic_Empty:	; Routine 12
+@locret:
 		rts	
