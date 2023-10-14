@@ -413,7 +413,17 @@ loc_194DA:
 
 loc_194E0:
 		clr.w	obVelY(a0)
-		music	bgm_SYZ		; play SYZ music
+		tst.b	(v_invinc).w
+		bne.s	@boss_invinc
+
+		move.b	v_levelmusic,d0
+		bra.w	@boss_play
+
+@boss_invinc:
+		move.b	#bgm_Invincible,d0
+
+@boss_play:
+		jsr		PlaySound
 
 loc_194EE:
 		bra.w	loc_191F2

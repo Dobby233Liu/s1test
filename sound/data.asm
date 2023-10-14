@@ -314,14 +314,28 @@ SoundCF:	include	"sound/sfx/SndCF - Signpost.asm"
 SoundD0:	include	"sound/sfx/SndD0 - Waterfall.asm"
 		even
 
-	include "MegaPCM.asm"
-
 ; ---------------------------------------------------------------
-; DAC Samples Files
+; DAC
 ; ---------------------------------------------------------------
 
+BuildDAC:	equ 1
+
+	include "sound/MegaPCM.asm"
+
+	if BuildDAC=1
 	IncludeDAC	kick, wav
 	IncludeDAC	snare, wav
 	IncludeDAC	timpani, wav
 	IncludeDAC	sega, wav
+	else
+	IncludeDAC	silence, wav
+	kick:			equ silence
+	kick_End:		equ silence
+	snare:			equ silence
+	snare_End:		equ silence
+	timpani:		equ silence
+	timpani_End:	equ silence
+	sega:			equ silence
+	sega_End:		equ silence
+	endc
 	even

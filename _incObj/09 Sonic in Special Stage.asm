@@ -212,7 +212,6 @@ Obj09_Jump:
 		andi.b	#btnABC,d0	; is A,	B or C pressed?
 		beq.s	Obj09_NoJump	; if not, branch
 		move.b	(v_ssangle).w,d0
-		andi.b	#$FC,d0
 		neg.b	d0
 		subi.b	#$40,d0
 		jsr	(CalcSine).l
@@ -248,7 +247,6 @@ Obj09_JumpHeight:			; XREF: Obj09_InAir
 		btst	#7,obStatus(a0)		; did Sonic jump or is he just falling or hit by a bumper?
 		beq.s	locret_1BBB4		; if not, branch to return
 		move.b	(v_ssangle).w,d0	; get SS angle
-		andi.b	#$FC,d0
 		neg.b	d0
 		subi.b	#$40,d0
 		jsr	(CalcSine).l			
@@ -262,7 +260,6 @@ Obj09_JumpHeight:			; XREF: Obj09_InAir
 		cmpi.w	#$400,d1		; compare the combined speed with the jump release speed
 		ble.s	locret_1BBB4		; if it's less, branch to return
 		move.b	(v_ssangle).w,d0
-		andi.b	#$FC,d0
 		neg.b	d0
 		subi.b	#$40,d0
 		jsr	(CalcSine).l
@@ -348,7 +345,6 @@ Obj09_Fall:
 		move.l	obY(a0),d2
 		move.l	obX(a0),d3
 		move.b	(v_ssangle).w,d0
-		andi.b	#$FC,d0
 		jsr	(CalcSine).l
 		move.w	obVelX(a0),d4
 		ext.l	d4

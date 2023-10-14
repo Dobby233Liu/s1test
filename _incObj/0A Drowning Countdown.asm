@@ -67,7 +67,8 @@ Drown_ChkWater:	; Routine 4
 		move.b	#id_Drown_Display,obRoutine(a0) ; goto Drown_Display next
 		addq.b	#7,obAnim(a0)
 		cmpi.b	#$D,obAnim(a0)
-		beq.s	Drown_Display
+        bcs.s	Drown_Display
+        move.b	#$D,obAnim(a0)
 		bra.s	Drown_Display
 ; ===========================================================================
 

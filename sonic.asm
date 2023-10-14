@@ -20,14 +20,16 @@
 	include	"Variables.asm"
 	include	"Macros.asm"
 
-EnableSRAM:		equ 1	; change to 1 to enable SRAM
-BackupSRAM:		equ 1
+EnableSRAM:		equ 0	; change to 1 to enable SRAM
+BackupSRAM:		equ 0
 AddressSRAM:	equ 3	; 0 = odd+even; 2 = even only; 3 = odd only
 
 ; Do not change !!
 Revision:	equ 2
 
 ZoneCount:	equ 6	; discrete zones are: GHZ, MZ, SYZ, LZ, SLZ, and SBZ
+
+BuildErrorHandler:	equ 0
 
 ; ===========================================================================
 
@@ -97,11 +99,11 @@ Vectors:	dc.l v_systemstack&$FFFFFF	; Initial stack pointer value
 		dc.l ErrorTrap			; Unused (reserved)
 		dc.l ErrorTrap			; Unused (reserved)
 Console:	dc.b "SEGA MEGA DRIVE " ; Hardware system ID (Console name)
-Date:		dc.b "(C)SEGA 2023.FEB" ; Copyright holder and release date (generally year)
+Date:		dc.b "(C)SEGA 2023.OCT" ; Copyright holder and release date (generally year)
 Title_Local:dc.b "SONIC THE HEDGEHOG                              " ; Domestic name
 Title_Int:	dc.b "SONIC THE HEDGEHOG                              " ; International name
 Serial:		dc.b "GM 00004049-02" ; Serial/version number
-Checksum: dc.w $0
+Checksum: dc.w $00				; not a thing
 		dc.b "J               " ; I/O support
 RomStartLoc:	dc.l StartOfRom		; Start address of ROM
 RomEndLoc:	dc.l EndOfRom-1		; End address of ROM
@@ -119,11 +121,11 @@ Region:		dc.b "JUE             " ; Region (Country code)
 EndOfHeader:
 
 ; ===========================================================================
-; freeze the 68000. Unlike Sonic 2, Sonic 1 uses the 68000 for playing music, so it stops too
 
 ErrorTrap:
-		bra.s	ErrorTrap
-; ===========================================================================
+	if BuildErrorHandler=1
+	bra	*
+	endc
 
 ;-------------------------------------------------------------------------
 ; Streamlined Startup for Sonic the Hedgehog 1
@@ -357,6 +359,8 @@ ptr_GM_Credits:	bra.w	GM_Credits	; Credits ($1C)
 	even
 ; ===========================================================================
 
+	if BuildErrorHandler=1
+
 BusError:
 		move.b	#2,(v_errortype).w
 		bra.s	loc_43A
@@ -516,6 +520,22 @@ ErrorWaitForC:
 		bne.w	ErrorWaitForC	; if not, branch
 		rts	
 ; End of function ErrorWaitForC
+
+	else
+
+BusError:	equ ErrorTrap
+AddressError:	equ ErrorTrap
+IllegalInstr:	equ ErrorTrap
+ZeroDivide:	equ ErrorTrap
+ChkInstr:	equ ErrorTrap
+TrapvInstr:	equ ErrorTrap
+PrivilegeViol:	equ ErrorTrap
+Trace:	equ ErrorTrap
+Line1010Emu:	equ ErrorTrap
+Line1111Emu:	equ ErrorTrap
+ErrorExcept:	equ ErrorTrap
+
+	endc
 
 ; ===========================================================================
 
@@ -920,7 +940,8 @@ ClearScreen:
 
 
 SoundDriverLoad:
-		stopZ80
+		nop
+		stopZ80b
 		resetZ80
 
 		lea	(MegaPCM).l,a0	; load sound driver
@@ -931,6 +952,10 @@ SoundDriverLoad:
         dbf	d1,@load
 
 		resetZ80a
+		nop
+		nop
+		nop
+		nop
 		resetZ80
 		startZ80
 		rts	
@@ -1923,9 +1948,10 @@ Sega_GotoTitle:
 ; ---------------------------------------------------------------------------
 
 GM_Title:
-		sfx	bgm_Stop	; stop music
+		sfx		bgm_Stop
 		bsr		PaletteFadeOut
 		bsr		ClearPLC
+		bsr		ClearScreen
 		disable_ints
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)	; 8-colour mode
@@ -1936,7 +1962,6 @@ GM_Title:
 		move.w	#$8B03,(a6)
 		move.w	#$8720,(a6)	; set background colour (palette line 2, entry 0)
 		clr.b	(f_wtr_state).w
-		bsr		ClearScreen
 
 		clr.w	(f_demo).w	; disable demo mode
 		clr.b	(v_lastlamp).w ; clear lamppost counter
@@ -1961,7 +1986,6 @@ GM_Title:
 
 		;copyTilemap	$FF0000,$C000,$27,$1B
 
-		move.w	#$200+$1E,(v_demolength).w ; run title screen for $200 frames
 		move.w	#0,(v_title_dcount).w
 		move.w	#0,(v_title_ccount).w
 
@@ -1997,8 +2021,20 @@ GM_Title:
 		move.w	(a5)+,(a6)
 		dbf	d1,Tit_LoadText	; load level select font
 
-		bsr.w	PaletteFadeOut
-		bsr.w	ClearScreen
+		enable_ints
+		move.w	#$1E,(v_demolength).w
+	Tit_WaitToLeaveSTP:
+		btst	#bitStart,(v_jpadpress1).w	; is Start button pressed?
+		bne.s	Tit_ActuallyStart			; if yes, branch
+		move.b	#2,(v_vbla_routine).w
+		bsr.w	WaitForVBla
+		tst.w	(v_demolength).w
+		bne.s	Tit_WaitToLeaveSTP
+	Tit_ActuallyStart:
+		bsr		PaletteFadeOut
+		bsr		ClearScreen
+
+		move.w	#$200+$1E,(v_demolength).w ; run title screen for $200 frames
 
 		lea	(v_objspace+$40).w,a1
 		moveq	#0,d0
@@ -2037,7 +2073,7 @@ GM_Title:
 	@isjap:
 		moveq	#palid_Title,d0	; load title screen palette
 		bsr.w	PalLoad1
-		sfx	bgm_Title	; play title screen music
+		sfx		bgm_Title	; play title screen music
 		bsr.w	PaletteFadeIn
 
 		move.w	(v_vdp_buffer1).w,d0
@@ -2286,7 +2322,6 @@ PlayLevel:
 		move.b	d0,(v_continues).w ; clear continues
 		move.l	#5000,(v_scorelife).w ; extra life is awarded at 50000 points
 		move.b	#id_Level,(v_gamemode).w ; set screen mode to $0C (level)
-		sfx	bgm_Fade ; fade out music
 		rts 
 
 ; ---------------------------------------------------------------------------
@@ -2467,16 +2502,17 @@ LevelMenuText:
 ; ---------------------------------------------------------------------------
 ; Music	playlist
 ; ---------------------------------------------------------------------------
+
 MusicList:
-		dc.b bgm_GHZ	; GHZ
-		dc.b bgm_LZ		; LZ
-		dc.b bgm_MZ		; MZ
-		dc.b bgm_SLZ	; SLZ
-		dc.b bgm_SYZ	; SYZ
-		dc.b bgm_SBZ	; SBZ
-		zonewarning MusicList,1
-		dc.b bgm_FZ	; Final (& ending somehow)
-		even
+        dc.b bgm_GHZ,	bgm_GHZ,	bgm_GHZ,	bgm_GHZ		; GHZ
+        dc.b bgm_LZ,	bgm_LZ,		bgm_LZ,		bgm_SBZ		; LZ & SBZ3
+        dc.b bgm_MZ,	bgm_MZ,		bgm_MZ,		bgm_MZ		; MZ
+        dc.b bgm_SLZ,	bgm_SLZ,	bgm_SLZ,	bgm_SLZ		; SLZ
+        dc.b bgm_SYZ,	bgm_SYZ,	bgm_SYZ,	bgm_SYZ		; SYZ
+        dc.b bgm_SBZ,	bgm_SBZ,	bgm_FZ,		bgm_SBZ		; SBZ & Final
+		zonewarning MusicList,4
+        dc.b bgm_GHZ,	bgm_GHZ,	bgm_GHZ,	bgm_GHZ		; Ending
+        even
 ; ===========================================================================
 
 ; ---------------------------------------------------------------------------
@@ -2487,13 +2523,14 @@ GM_Level:
 		bset	#7,(v_gamemode).w ; add $80 to screen mode (for pre level sequence)
 		tst.w	(f_demo).w
 		bmi.s	@NoMusicFade
-		sfx	bgm_Fade ; fade out music
+		sfx		bgm_Fade ; fade out music
 
 @NoMusicFade:
 		bsr.w	ClearPLC
 		bsr.w	PaletteFadeOut
 		tst.w	(f_demo).w	; is an ending sequence demo running?
 		bmi.s	Level_ClrRam	; if yes, branch
+		music	bgm_Stop
 		disable_ints
 		locVRAM	$B000
 		lea	(Nem_TitleCard).l,a0 ; load title card patterns
@@ -2597,20 +2634,13 @@ Level_GetBgm:
 		tst.w	(f_demo).w
 		bmi.s	Level_SkipTtlCard
 		moveq	#0,d0
-		move.b	(v_zone).w,d0
-		cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; is level SBZ3?
-		bne.s	Level_BgmNotLZ4	; if not, branch
-		moveq	#5,d0		; use 5th music (SBZ)
-
-	Level_BgmNotLZ4:
-		cmpi.w	#(id_SBZ<<8)+2,(v_zone).w ; is level FZ?
-		bne.s	Level_PlayBgm	; if not, branch
-		moveq	#6,d0		; use 6th music (FZ)
-
-	Level_PlayBgm:
-		lea	(MusicList).l,a1 ; load	music playlist
+		move.w	(v_zone).w,d0
+		ror.b	#2,d0
+		lsr.w	#6,d0
+		lea	(MusicList).l,a1 ; load music playlist
 		move.b	(a1,d0.w),d0
-		bsr.w	PlaySound	; play music
+		move.b	d0,(v_levelmusic).w
+		bsr.w	PlaySound    ; play music
 		move.b	#id_TitleCard,(v_objspace+$80).w ; load title card object
 
 Level_TtlCardLoop:
@@ -2812,7 +2842,7 @@ Level_ChkDemo:
 Level_EndDemo:
 		cmpi.b	#id_Demo,(v_gamemode).w
 		bne.s	Level_FadeDemo	; if mode is 8 (demo), branch
-		move.b	#id_Sega,(v_gamemode).w ; go to Sega screen
+		move.b	#id_Title,(v_gamemode).w ; go to Sega screen
 		tst.w	(f_demo).w	; is demo mode on & not ending sequence?
 		bpl.s	Level_FadeDemo	; if yes, branch
 		move.b	#id_Credits,(v_gamemode).w ; go to credits
@@ -3801,6 +3831,7 @@ Map_ESth:	include	"_maps\Ending Sequence STH.asm"
 GM_Credits:
 		bsr.w	ClearPLC
 		bsr.w	PaletteFadeOut
+		bsr.w	ClearScreen
 		lea	(vdp_control_port).l,a6
 		move.w	#$8004,(a6)		; 8-colour mode
 		move.w	#$8200+(vram_fg>>10),(a6) ; set foreground nametable address
@@ -3810,7 +3841,6 @@ GM_Credits:
 		move.w	#$8B03,(a6)		; line scroll mode
 		move.w	#$8720,(a6)		; set background colour (line 3; colour 0)
 		clr.b	(f_wtr_state).w
-		bsr.w	ClearScreen
 
 		lea	(v_objspace).w,a1
 		moveq	#0,d0
@@ -3819,6 +3849,7 @@ GM_Credits:
 		move.l	d0,(a1)+
 		dbf	d1,Cred_ClrObjRam ; clear object RAM
 
+		disable_ints
 		locVRAM	$B400
 		lea	(Nem_CreditText).l,a0 ;	load credits alphabet patterns
 		bsr.w	NemDec
@@ -4993,8 +5024,7 @@ LevelDataLoad:
 		andi.l	#$FFFFFF,(v_16x16).l
 		move.l	(a2)+,(v_256x256).l
 		bsr.w	LevelLayoutLoad
-		move.w	(a2)+,d0
-		move.w	(a2),d0
+		move.b	(a2),d0
 		andi.w	#$FF,d0
 		cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; is level SBZ3 (LZ4) ?
 		bne.s	@notSBZ3	; if not, branch
@@ -6852,25 +6882,9 @@ loc_12EA6:
 
 ResumeMusic:
 		cmpi.w	#12,(v_air).w	; more than 12 seconds of air left?
-		bhi.s	@over12		; if yes, branch
-		move.w	#bgm_LZ,d0	; play LZ music
-		cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; check if level is 0103 (SBZ3)
-		bne.s	@notsbz
-		move.w	#bgm_SBZ,d0	; play SBZ music
-
-	@notsbz:
-		if Revision=0
-		else
-			tst.b	(v_invinc).w ; is Sonic invincible?
-			beq.s	@notinvinc ; if not, branch
-			move.w	#bgm_Invincible,d0
-	@notinvinc:
-			tst.b	(f_lockscreen).w ; is Sonic at a boss?
-			beq.s	@playselected ; if not, branch
-			move.w	#bgm_Boss,d0
-	@playselected:
-		endc
-
+		bhi.s	@over12			; if yes, branch
+		moveq	#0,d0
+		move.b	v_levelmusic,d0
 		jsr	(PlaySound).l
 
 	@over12:
@@ -6908,37 +6922,6 @@ Map_Splash:	include	"_maps\Water Splash.asm"
 
 
 FloorLog_Unk:
-		; lea	(CollArray1).l,a1
-		; lea	(CollArray1).l,a2
-		; move.w	#$FF,d3
-
-; loc_14C5E:
-		; moveq	#$10,d5
-		; move.w	#$F,d2
-
-; loc_14C64:
-		; moveq	#0,d4
-		; move.w	#$F,d1
-
-; loc_14C6A:
-		; move.w	(a1)+,d0
-		; lsr.l	d5,d0
-		; addx.w	d4,d4
-		; dbf	d1,loc_14C6A
-
-		; move.w	d4,(a2)+
-		; suba.w	#$20,a1
-		; subq.w	#1,d5
-		; dbf	d2,loc_14C64
-
-		; adda.w	#$20,a1
-		; dbf	d3,loc_14C5E
-
-		; lea	(CollArray1).l,a1
-		; lea	(CollArray2).l,a2
-		; bsr.s	FloorLog_Unk2
-		; lea	(CollArray1).l,a1
-		; lea	(CollArray1).l,a2
 	rts
 
 ; End of function FloorLog_Unk
@@ -6998,6 +6981,9 @@ loc_14D24:
 		andi.b	#$38,d1
 		bne.s	loc_14D3C
 		addq.w	#8,d2
+		btst	#2,obStatus(a0)		; Is Sonic rolling?
+		beq.s	loc_14D3C			; If not, branch
+		subq.w	#5,d2				; If so, move push sensor up a bit
 
 loc_14D3C:
 		cmpi.b	#$40,d0
@@ -7457,19 +7443,15 @@ locret_178A2:
 
 
 BossMove:
-		move.l	$30(a0),d2
-		move.l	$38(a0),d3
 		move.w	obVelX(a0),d0
 		ext.l	d0
-		asl.l	#8,d0
-		add.l	d0,d2
+		lsl.l	#8,d0
+		add.l	d0,$30(a0)
 		move.w	obVelY(a0),d0
 		ext.l	d0
-		asl.l	#8,d0
-		add.l	d0,d3
-		move.l	d2,$30(a0)
-		move.l	d3,$38(a0)
-		rts	
+		lsl.l	#8,d0
+		add.l	d0,$38(a0)
+        rts  
 ; End of function BossMove
 
 ; ===========================================================================
@@ -8944,9 +8926,8 @@ ObjPos_Null:	dc.b $FF, $FF, 0, 0, 0,	0
 		else
 		dcb.b $63C,$FF
 		endc
-		;dcb.b ($10000-(*%$10000))-(EndOfRom-SoundDriver),$FF
 
-SoundDriver:	include "s1.sounddriver.asm"
+SoundDriver:	include "sound/sounddriver.asm"
 
 ; end of 'ROM'
 		even

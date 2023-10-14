@@ -49,19 +49,19 @@ IncludeDAC macro Name,Extension
 ; ---------------------------------------------------------------
 
 MegaPCM:
-	incbin	"MegaPCM.z80"
+	incbin	"sound/MegaPCM.z80"
 
 ; ---------------------------------------------------------------
 ; DAC Samples Table
 ; ---------------------------------------------------------------
 
 	DAC_Entry	$02, kick, pcm			; $81	- Kick
-	DAC_Entry	$02, snare, pcm			; $82	- Snare
+	DAC_Entry	$01, snare, pcm			; $82	- Snare
 	;DAC_Entry	$08, timpani, pcm		; $83	- Timpani
 	DAC_Entry	$01, timpani, pcm		; $84	- Hi-Timpani
 	DAC_Entry	$03, timpani, pcm		; $85	- Mid-Timpani
 	DAC_Entry	$04, timpani, pcm		; $86	- Mid-Low-Timpani
 	DAC_Entry	$06, timpani, pcm		; $87	- Low-Timpani
-	DAC_Entry	$04, sega, pcm+pri		; $88	- "Sega" sound
+	DAC_Entry	$05, sega, pcm+pri		; $88	- "Sega" sound
 
 MegaPCM_End:

@@ -31,7 +31,7 @@ Invis_Main:	; Routine 0
 		move.b	d1,invis_height(a0) ; set object height
 
 Invis_Solid:	; Routine 2
-		bsr.w	ChkObjectVisible
+		bsr.w	ChkSizedObjVisible
 		bne.s	@chkdel
 		moveq	#0,d1
 		move.b	obActWid(a0),d1

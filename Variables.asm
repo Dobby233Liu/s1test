@@ -208,7 +208,7 @@ v_camera_pan:    equ $FFFFF7A0    ; Extended Camera - how far the camera/view is
 
 v_obj31ypos:	equ $FFFFF7A4	; y-position of object 31 (MZ stomper) (2 bytes)
 v_bossstatus:	equ $FFFFF7A7	; status of boss and prison capsule (01 = boss defeated; 02 = prison opened)
-v_trackpos:	equ $FFFFF7A8	; position tracking reference number (2 bytes)
+v_trackpos:	equ $FFFFF7A8	    ; position tracking reference number (2 bytes)
 v_trackbyte:	equ $FFFFF7A9	; low byte for position tracking
 f_lockscreen:	equ $FFFFF7AA	; flag set to lock screen during bosses
 v_256loop1:	equ $FFFFF7AC	; 256x256 level tile which contains a loop (GHZ/SLZ)
@@ -245,7 +245,6 @@ v_sonicend:	equ $FFFFF7D7	; routine counter for Sonic in the ending sequence
 v_lz_deform:	equ	$FFFFF7D8	; LZ deformtaion offset, in units of $80 (2 bytes)
 f_switch:	equ $FFFFF7E0	; flags set when Sonic stands on a switch ($10 bytes)
 v_scroll_block_1_size:	equ $FFFFF7F0	; (2 bytes)
-v_scroll_block_2_size:	equ $FFFFF7F2	; unused (2 bytes)
 v_scroll_block_3_size:	equ $FFFFF7F4	; unused (2 bytes)
 v_scroll_block_4_size:	equ $FFFFF7F6	; unused (2 bytes)
 
@@ -256,6 +255,7 @@ v_pal_dry:	equ $FFFFFB00	; main palette ($80 bytes)
 v_pal_dry_dup:	equ $FFFFFB80	; duplicate palette, used for transitions ($80 bytes)
 v_objstate:	equ $FFFFFC00	; object state list ($200 bytes)
 
+v_levelmusic:	        equ $FFFFF7F2	; level music (1 byte)
 
 v_systemstack:	equ $FFFFFE00
 f_restart:	equ $FFFFFE02	; restart level flag (2 bytes)

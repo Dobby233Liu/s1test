@@ -24,20 +24,8 @@ Sonic_Display:
 		cmpi.w	#$C,(v_air).w
 		bcs.s	@removeinvincible
 		moveq	#0,d0
-		move.b	(v_zone).w,d0
-		cmpi.w	#(id_LZ<<8)+3,(v_zone).w ; is level SBZ3?
-		bne.s	@not_sbz3 ; if not, branch
-		moveq	#5,d0		; use 5th music (SBZ)
-
-	@not_sbz3:
-		cmpi.w	#(id_SBZ<<8)+2,(v_zone).w ; is level FZ?
-		bne.s	@music	; if not, branch
-		moveq	#6,d0		; use 6th music (FZ)
-
-	@music:
-		lea	(MusicList).l,a1
-		move.b	(a1,d0.w),d0
-		jsr	(PlaySound).l	; play normal music
+        move.b	v_levelmusic,d0    ; loads song number from RAM
+        jsr		(PlaySound).l    ; play normal music
 
 	@removeinvincible:
 		move.b	#0,(v_invinc).w ; cancel invincibility
